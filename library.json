@@ -1,0 +1,23 @@
+{
+    "name": "ESPressio-Serial",
+    "description": "Serial and console-oriented components for the ESPressio ecosystem, including opt-in monitoring of ESPressio Event Transport transactions.",
+    "keywords": "esp32,serial,console,monitor,event,transport,diagnostics,espressio",
+    "authors": {
+        "name": "Flowduino",
+        "maintainer": true,
+        "url": "https://flowduino.com"
+    },
+    "build": {
+        "flags": [
+            "-DESPRESSIO_SERIAL"
+        ]
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Flowduino/ESPressio-Serial.git"
+    },
+    "version": "0.1.0",
+    "license": "Apache-2.0",
+    "frameworks": "arduino",
+    "platforms": "espressif32"
+}
