@@ -1,16 +1,6 @@
 #pragma once
 
 #include "ESPressio_SerialTypes.hpp"
+#include "ESPressio_DiagnosticTypes.hpp"
 
-/*
- * Core ESPressio Serial deliberately has no ESPressio Event or Serializable
- * dependency.
- *
- * Event Transport monitoring is opt-in:
- *
- *     #include <ESPressio_EventMonitor.hpp>
- *
- * or:
- *
- *     #include <ESPressio_SerialEventMonitoring.hpp>
- */
+/* Optional facilities are selected explicitly through ESPressio_Logging.hpp, ESPressio_SystemClockMonitor.hpp, ESPressio_ThreadMonitor.hpp, ESPressio_EventMonitor.hpp, or ESPressio_DiagnosticMonitor.hpp. */

@@ -16,7 +16,7 @@ The chart is hierarchical: libraries with no **required** ESPressio dependencies
 
 The ESPressio Serial core has no required ESPressio dependency.
 
-Its first integration, `EventMonitor`, is opt-in and consumes:
+Its diagnostics integrations are opt-in. `EventMonitor` consumes:
 
 ```text
 ESPressio Event >= 5.5.0
@@ -28,6 +28,8 @@ Event supplies the Event Transport Transaction Observation stream.
 Serializable supplies `BinaryArchive` decoding into the generic `SerializationNode` tree used for human-readable structured payload output.
 
 Applications using only the core ESPressio Serial layer do not acquire either dependency.
+
+`SystemClockMonitor` optionally consumes ESPressio Timing 2.2.0 or newer, while `ThreadMonitor` optionally consumes ESPressio Threads 3.1.0 or newer. These relationships are also dashed/opt-in.
 
 ## Other relationships
 

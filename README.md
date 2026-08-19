@@ -2,11 +2,11 @@
 
 Serial and console-oriented components for the Flowduino ESPressio Development Platform.
 
-The initial release provides an opt-in **ESPressio Event Transport Monitor** capable of observing every Serializable Event transported through ESPressio Event 5.5.0 and rendering the transaction to any Arduino `Print` destination.
+Version 0.2.0 expands ESPressio Serial into the human-facing diagnostics and logging layer of the ESPressio ecosystem, with structured logging, pluggable sinks, retained diagnostic history, and opt-in monitors for Event, Timing, and Threads.
 
 ## Latest Stable Version
 
-The initial release is **0.1.0**.
+The latest stable version is **0.2.0**.
 
 ## ESPressio Development Platform
 
@@ -61,6 +61,154 @@ In the dependency chart:
 
 - **Solid relationships** represent required dependencies.
 - **Dashed relationships** represent opt-in dependencies introduced only when the associated feature/header is used.
+
+---
+
+
+# Version 0.2.0 — Diagnostics & Logging
+
+Version 0.2.0 adds a general diagnostics foundation alongside the existing Event Monitor.
+
+## Logging
+
+```cpp
+#include <ESPressio_Logging.hpp>
+
+ESPressio::Serial::Logger<> logger;
+ESPressio::Serial::SerialLogSink serialSink(::Serial);
+ESPressio::Serial::DiagnosticRingBuffer<64> history;
+
+void setup() {
+    ::Serial.begin(115200);
+
+    logger.AddSink(serialSink);
+    logger.AddSink(history);
+
+    logger.SetMinimumLevel(
+        ESPressio::Serial::LogLevel::Debug
+    );
+
+    logger.Info("Application", "Boot complete");
+}
+```
+
+Supported levels are:
+
+```text
+Trace
+Debug
+Info
+Warning
+Error
+Critical
+Off
+```
+
+`Logger` supports multiple simultaneous `ILoggerSink` implementations. Logging data is therefore separated from its output destination: Serial is one sink, not the logging architecture itself.
+
+`ESPRESSIO_SERIAL_COMPILETIME_LOG_LEVEL` may be defined to remove lower-severity calls from runtime delivery, while `SetMinimumLevel()` provides runtime filtering.
+
+## Diagnostic flight recorder
+
+`DiagnosticRingBuffer<Capacity>` is both an `ILoggerSink` and a bounded in-memory history.
+
+```cpp
+ESPressio::Serial::DiagnosticRingBuffer<64> history;
+
+logger.AddSink(history);
+
+// Later, after a fault:
+history.Dump(::Serial);
+```
+
+Entries are copied into fixed-size storage; the oldest entry is overwritten when capacity is exhausted. This makes it suitable for retaining the diagnostic events immediately preceding a failure without unbounded heap growth.
+
+## System Clock Monitor
+
+```cpp
+#include <ESPressio_SystemClockMonitor.hpp>
+
+ESPressio::Serial::SystemClockMonitor<> clockMonitor;
+
+clockMonitor.Initialize(::Serial);
+```
+
+This integration directly consumes ESPressio Timing 2.2.0's `ISystemClockObserver` notifications. It reports time-setting, synchronization acceptance/rejection, synchronization state changes, resets/configuration changes, and callback scheduling/execution.
+
+Synchronization output includes the clock value before correction, the value after correction, and the immediate nanosecond difference.
+
+This is an opt-in Timing dependency; ESPressio Event is not involved.
+
+## Thread Monitor
+
+```cpp
+#include <ESPressio_ThreadMonitor.hpp>
+
+ESPressio::Serial::ThreadMonitor threadMonitor;
+
+threadMonitor.Initialize(::Serial);
+```
+
+`ThreadMonitor` directly observes the process-wide ESPressio Threads 3.1.0 infrastructure:
+
+```text
+ThreadManager
+ThreadGarbageCollector
+ThreadTerminationDispatcher
+```
+
+It reports registration, cleanup, garbage collection, termination dispatch, initialization, and failure lifecycle notifications.
+
+This is an opt-in Threads dependency; Event bridges are not required merely to display Thread diagnostics.
+
+## Aggregate Diagnostic Monitor
+
+When the corresponding dependency headers are available, the convenience monitor can compose all supported subsystem monitors:
+
+```cpp
+#include <ESPressio_DiagnosticMonitor.hpp>
+
+ESPressio::Serial::DiagnosticMonitor diagnostics;
+
+void setup() {
+    ::Serial.begin(115200);
+
+    ESPressio::Serial::DiagnosticMonitorConfig config;
+
+    config.SystemClock = true;
+    config.Threads = true;
+    config.Events = true;
+
+    diagnostics.Initialize(
+        ::Serial,
+        config
+    );
+}
+```
+
+The aggregate uses compile-time feature detection. It does not itself make Timing, Threads, Event, or Serializable mandatory package dependencies.
+
+## Dependency model
+
+```text
+ESPressio Serial core
+    -> no mandatory ESPressio dependency
+
+Logging
+    -> no additional ESPressio dependency
+
+SystemClockMonitor
+    - - -> ESPressio Timing >= 2.2.0
+
+ThreadMonitor
+    - - -> ESPressio Threads >= 3.1.0
+
+EventMonitor
+    - - -> ESPressio Event >= 5.5.0
+    - - -> ESPressio Serializable >= 0.9.0
+```
+
+All ESPressio relationships remain opt-in.
 
 ---
 
@@ -366,14 +514,14 @@ A project using only the core Serial library:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.1.0
+    flowduino/ESPressio-Serial@^0.2.0
 ```
 
 An application using Event Monitor requires:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.1.0
+    flowduino/ESPressio-Serial@^0.2.0
     flowduino/ESPressio-Event@^5.5.0
     flowduino/ESPressio-Serializable@^0.9.0
 ```
