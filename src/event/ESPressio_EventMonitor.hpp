@@ -1,11 +1,11 @@
 #pragma once
 
 #if !__has_include(<ESPressio_EventTransport.hpp>)
-#error "ESPressio EventMonitor requires ESPressio Event >= 5.5.0."
+#error "ESPressio EventMonitor requires ESPressio Event >= 5.6.2 < 6.0.0."
 #endif
 
 #if !__has_include(<ESPressio_BinaryArchive.hpp>)
-#error "ESPressio EventMonitor requires ESPressio Serializable >= 0.9.0."
+#error "ESPressio EventMonitor requires ESPressio Serializable >= 0.9.0 < 1.0.0."
 #endif
 
 #include <mutex>

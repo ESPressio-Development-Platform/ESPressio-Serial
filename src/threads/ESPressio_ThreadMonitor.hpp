@@ -1,6 +1,6 @@
 #pragma once
 #if !__has_include(<ESPressio_ThreadManager.hpp>)
-#error "ThreadMonitor requires ESPressio Threads >= 3.1.0."
+#error "ThreadMonitor requires ESPressio Threads >= 3.1.1 < 4.0.0."
 #endif
 #include <Arduino.h>
 #include <ESPressio_IThreadManagerObserver.hpp>

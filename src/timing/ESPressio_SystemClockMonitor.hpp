@@ -1,6 +1,6 @@
 #pragma once
 #if !__has_include(<ESPressio_Timing.hpp>)
-#error "SystemClockMonitor requires ESPressio Timing >= 2.2.0."
+#error "SystemClockMonitor requires ESPressio Timing >= 2.2.1 < 3.0.0."
 #endif
 #include <Arduino.h>
 #include <cstdio>

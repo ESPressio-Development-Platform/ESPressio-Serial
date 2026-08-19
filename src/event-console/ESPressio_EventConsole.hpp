@@ -5,7 +5,7 @@
 #endif
 
 #if !__has_include(<ESPressio_JsonArchive.hpp>)
-#error "ESPressio EventConsole requires ESPressio Serializable >= 0.9.0 with the optional JSON adapter and ArduinoJson."
+#error "ESPressio EventConsole requires ESPressio Serializable >= 0.9.0 < 1.0.0 with the optional JSON adapter and ArduinoJson."
 #endif
 
 #include <algorithm>

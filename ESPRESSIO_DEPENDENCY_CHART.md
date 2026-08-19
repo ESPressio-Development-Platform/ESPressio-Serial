@@ -19,8 +19,8 @@ The ESPressio Serial core and generic Console have no required ESPressio depende
 Its diagnostics integrations are opt-in. `EventMonitor` consumes:
 
 ```text
-ESPressio Event >= 5.6.1
-ESPressio Serializable >= 0.9.0
+ESPressio Event >= 5.6.2 < 6.0.0
+ESPressio Serializable >= 0.9.0 < 1.0.0
 ```
 
 Event supplies the Event Transport Transaction Observation stream.
@@ -29,7 +29,7 @@ Serializable supplies `BinaryArchive` decoding into the generic `SerializationNo
 
 Applications using only the core ESPressio Serial layer do not acquire either dependency.
 
-`SystemClockMonitor` optionally consumes ESPressio Timing 2.2.0 or newer, while `ThreadMonitor` optionally consumes ESPressio Threads 3.1.0 or newer. These relationships are also dashed/opt-in.
+`SystemClockMonitor` optionally consumes ESPressio Timing 2.2.1 or newer, while `ThreadMonitor` optionally consumes ESPressio Threads 3.1.1 or newer. These relationships are also dashed/opt-in.
 
 ## Other relationships
 
@@ -48,10 +48,10 @@ Applications using only the core ESPressio Serial layer do not acquire either de
 When explicitly selected it consumes:
 
 ```text
-ESPressio Event >= 5.6.1
+ESPressio Event >= 5.6.2 < 6.0.0
     runtime Serializable Event discovery, descriptors, construction and dispatch
 
-ESPressio Serializable >= 0.9.0
+ESPressio Serializable >= 0.9.0 < 1.0.0
     JsonArchive and validation diagnostics
 ```
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2 — 2026-08-19
+
+### Changed
+- Updated active ESPressio dependency baselines to the latest released versions available on 2026-08-19.
+- Bounded dependency compatibility to the current major version so future breaking major releases are not selected automatically.
+- Updated optional ESPressio Event integrations to require Event 5.6.2 or newer within the 5.x line.
+- Updated referenced Timing and Threads integration baselines to Timing 2.2.1 and Threads 3.1.1, matching the dependency-refresh release chain.
+
 All notable changes to this project are documented in this file.
 
 The structure follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).

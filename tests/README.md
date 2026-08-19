@@ -10,7 +10,7 @@ It exercises:
 - interceptor removal;
 - polling from a `Stream`.
 
-`EventConsole` additionally depends on ESPressio Event 5.6.1, ESPressio Serializable 0.9.0 and the optional ArduinoJson adapter. Its full runtime behaviour is demonstrated by the repository EventConsole examples and is compile-validated against those public APIs during release preparation.
+`EventConsole` additionally depends on ESPressio Event 5.6.2, ESPressio Serializable 0.9.0 and the optional ArduinoJson adapter. Its full runtime behaviour is demonstrated by the repository EventConsole examples and is compile-validated against those public APIs during release preparation.
 
 
 The `EventConsoleContract` test uses narrow test doubles for the Event 5.6 runtime descriptor/factory contract and Serializable JSON adapter. It validates:
