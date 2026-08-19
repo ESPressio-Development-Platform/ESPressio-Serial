@@ -19,7 +19,7 @@ The ESPressio Serial core and generic Console have no required ESPressio depende
 Its diagnostics integrations are opt-in. `EventMonitor` consumes:
 
 ```text
-ESPressio Event >= 5.6.0
+ESPressio Event >= 5.6.1
 ESPressio Serializable >= 0.9.0
 ```
 
@@ -48,7 +48,7 @@ Applications using only the core ESPressio Serial layer do not acquire either de
 When explicitly selected it consumes:
 
 ```text
-ESPressio Event >= 5.6.0
+ESPressio Event >= 5.6.1
     runtime Serializable Event discovery, descriptors, construction and dispatch
 
 ESPressio Serializable >= 0.9.0

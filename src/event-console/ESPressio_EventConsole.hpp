@@ -1,7 +1,7 @@
 #pragma once
 
 #if !__has_include(<ESPressio_EventTransport.hpp>)
-#error "ESPressio EventConsole requires ESPressio Event >= 5.6.0."
+#error "ESPressio EventConsole requires ESPressio Event >= 5.6.1."
 #endif
 
 #if !__has_include(<ESPressio_JsonArchive.hpp>)

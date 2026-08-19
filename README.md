@@ -2,11 +2,11 @@
 
 Serial and console-oriented components for the Flowduino ESPressio Development Platform.
 
-Version 0.3.0 adds a reusable Stream/Print command console and an opt-in operator-facing Event Console capable of discovering, describing, composing as JSON, validating, and dispatching runtime-registered Serializable Events through ESPressio Event 5.6.0.
+Version 0.3.0 adds a reusable Stream/Print command console and an opt-in operator-facing Event Console capable of discovering, describing, composing as JSON, validating, and dispatching runtime-registered Serializable Events through ESPressio Event 5.6.1.
 
 ## Latest Stable Version
 
-The latest stable version is **0.3.0**.
+The latest stable version is **0.3.1**.
 
 ## ESPressio Development Platform
 
@@ -65,6 +65,23 @@ In the dependency chart:
 ---
 
 
+
+
+## Version 0.3.1 — Event 5.6.1 compatibility
+
+Version 0.3.1 updates the optional `EventConsole` integration baseline to **ESPressio Event 5.6.1**.
+
+Event 5.6.1 corrects `EventDispatchContext` equality semantics required by ESPressio Threads 3.1 `ReadWriteMutex<T>` change detection. No ESPressio Serial console, monitoring, logging, or EventConsole public API changes are required.
+
+Applications using `EventConsole` should therefore target:
+
+```ini
+flowduino/ESPressio-Event@^5.6.1
+```
+
+The core Serial library and generic `Console` remain independent of ESPressio Event.
+
+---
 
 # Version 0.3.0 — Interactive Runtime Serializable Event Console
 
@@ -173,7 +190,7 @@ The Event Console is opt-in:
 and requires:
 
 ```text
-ESPressio Event >= 5.6.0
+ESPressio Event >= 5.6.1
 ESPressio Serializable >= 0.9.0
 ArduinoJson (through the optional Serializable JsonArchive)
 ```
@@ -934,14 +951,14 @@ A project using only the core Serial library:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.0
+    flowduino/ESPressio-Serial@^0.3.1
 ```
 
 An application using Event Monitor requires:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.0
+    flowduino/ESPressio-Serial@^0.3.1
     flowduino/ESPressio-Event@^5.5.0
     flowduino/ESPressio-Serializable@^0.9.0
 ```
@@ -957,15 +974,15 @@ The generic console requires only ESPressio Serial:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.0
+    flowduino/ESPressio-Serial@^0.3.1
 ```
 
 The Event Console additionally requires the runtime Event and JSON stacks:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.0
-    flowduino/ESPressio-Event@^5.6.0
+    flowduino/ESPressio-Serial@^0.3.1
+    flowduino/ESPressio-Event@^5.6.1
     flowduino/ESPressio-Serializable@^0.9.0
     bblanchon/ArduinoJson
 ```

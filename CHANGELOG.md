@@ -4,6 +4,24 @@ All notable changes to this project are documented in this file.
 
 The structure follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-08-19
+
+### Changed
+
+- Updated the optional `EventConsole` integration baseline from ESPressio Event 5.6.0 to **ESPressio Event 5.6.1**.
+- Updated EventConsole compile-time dependency guidance and PlatformIO examples to target Event 5.6.1.
+- Updated ESPressio Serial package/component version metadata to 0.3.1.
+
+### Fixed
+
+- Removed the upstream full-stack validation blocker caused by Event 5.6.0 lacking `EventDispatchContext` equality semantics for ESPressio Threads 3.1 `ReadWriteMutex<T>` change detection; the correction is supplied by Event 5.6.1.
+
+### Compatibility
+
+- No ESPressio Serial public interfaces or runtime behaviour are changed by this patch release.
+- The generic `Console`, logging, diagnostic monitors, and Event Monitor remain source-compatible.
+- `EventConsole` remains opt-in and now validates against ESPressio Event 5.6.1 or newer.
+
 ## [0.3.0] - 2026-08-19
 
 ### Added
