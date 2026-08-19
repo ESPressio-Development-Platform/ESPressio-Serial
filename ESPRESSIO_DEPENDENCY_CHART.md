@@ -14,12 +14,12 @@ The chart is hierarchical: libraries with no **required** ESPressio dependencies
 
 ## ESPressio Serial
 
-The ESPressio Serial core has no required ESPressio dependency.
+The ESPressio Serial core and generic Console have no required ESPressio dependency.
 
 Its diagnostics integrations are opt-in. `EventMonitor` consumes:
 
 ```text
-ESPressio Event >= 5.5.0
+ESPressio Event >= 5.6.0
 ESPressio Serializable >= 0.9.0
 ```
 
@@ -39,3 +39,22 @@ Applications using only the core ESPressio Serial layer do not acquire either de
 - Event requires Threads, Timing, and Observable; Serializable functionality remains opt-in.
 - Sockets has no mandatory ESPressio dependency but optionally consumes Event for network Event Transports and Timing for socket/SNTP clock synchronization.
 - Units optionally consumes Serializable for Serializable Unit counterparts.
+
+
+## ESPressio Serial Event Console
+
+`EventConsole` adds no new mandatory core relationship.
+
+When explicitly selected it consumes:
+
+```text
+ESPressio Event >= 5.6.0
+    runtime Serializable Event discovery, descriptors, construction and dispatch
+
+ESPressio Serializable >= 0.9.0
+    JsonArchive and validation diagnostics
+```
+
+Both remain opt-in relationships.
+
+The external ArduinoJson dependency is required only by the optional Serializable `JsonArchive`; it is outside this ESPressio-to-ESPressio dependency chart.

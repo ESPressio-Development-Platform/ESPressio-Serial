@@ -2,11 +2,11 @@
 
 Serial and console-oriented components for the Flowduino ESPressio Development Platform.
 
-Version 0.2.0 expands ESPressio Serial into the human-facing diagnostics and logging layer of the ESPressio ecosystem, with structured logging, pluggable sinks, retained diagnostic history, and opt-in monitors for Event, Timing, and Threads.
+Version 0.3.0 adds a reusable Stream/Print command console and an opt-in operator-facing Event Console capable of discovering, describing, composing as JSON, validating, and dispatching runtime-registered Serializable Events through ESPressio Event 5.6.0.
 
 ## Latest Stable Version
 
-The latest stable version is **0.2.0**.
+The latest stable version is **0.3.0**.
 
 ## ESPressio Development Platform
 
@@ -64,6 +64,426 @@ In the dependency chart:
 
 ---
 
+
+
+# Version 0.3.0 — Interactive Runtime Serializable Event Console
+
+Version 0.3.0 adds the interactive operator/service-console layer.
+
+The architecture deliberately preserves library ownership:
+
+```text
+operator
+   |
+   v
+ESPressio Serial Console
+   |
+   | JSON
+   v
+ESPressio Serializable JsonArchive
+   |
+   | SerializationNode
+   v
+ESPressio Event 5.6 runtime registry/factory
+   |
+   v
+concrete Serializable Event
+   |
+   v
+normal Queue / Stack dispatch
+   |
+   +--> local listeners
+   |
+   +--> EventTransportManager
+            |
+            +--> any configured outbound transport
+```
+
+Serial does not create a second Event registry or remote-dispatch mechanism.
+
+## Generic `Console`
+
+The generic console is available independently of Event:
+
+```cpp
+#include <ESPressio_Console.hpp>
+
+ESPressio::Serial::Console console;
+
+void setup() {
+    ::Serial.begin(115200);
+
+    ESPressio::Serial::ConsoleConfig config;
+    config.Prompt = "espressio> ";
+
+    console.Initialize(
+        ::Serial,
+        ::Serial,
+        config
+    );
+
+    console.RegisterCommand(
+        "hello",
+        "Print a greeting",
+        [](const auto& context) {
+            // Handle context.Arguments.
+        }
+    );
+}
+
+void loop() {
+    console.Poll();
+}
+```
+
+Input uses Arduino `Stream`; output uses Arduino `Print`.
+
+The console therefore works with Hardware Serial, USB CDC, or another compatible implementation.
+
+The line buffer is bounded through:
+
+```cpp
+ConsoleConfig::MaximumLineLength
+```
+
+and the console supports:
+
+```text
+command registration
+command unregistration
+help
+arguments
+prompt configuration
+optional input echo
+multiple interactive line interceptors
+backspace/delete handling
+CR/LF handling
+```
+
+Multiple line interceptors are intentional: future console extensions can maintain independent interactive states without replacing one global input handler.
+
+## `EventConsole`
+
+The Event Console is opt-in:
+
+```cpp
+#include <ESPressio_EventConsole.hpp>
+```
+
+and requires:
+
+```text
+ESPressio Event >= 5.6.0
+ESPressio Serializable >= 0.9.0
+ArduinoJson (through the optional Serializable JsonArchive)
+```
+
+Initialize it over an existing `Console`:
+
+```cpp
+ESPressio::Serial::Console console;
+ESPressio::Serial::EventConsole eventConsole;
+
+console.Initialize(
+    ::Serial,
+    ::Serial
+);
+
+eventConsole.Initialize(
+    console
+);
+```
+
+## Safe-by-default Event authorization
+
+Runtime Event discovery does **not** imply permission to dispatch an Event.
+
+The default access policy is:
+
+```cpp
+EventConsoleAccessPolicy::AllowListedOnly
+```
+
+Allow specific Event types:
+
+```cpp
+eventConsole.AllowEvent<
+    CameraShutterEvent
+>();
+
+eventConsole.AllowEvent(
+    "flowduino.motor.move.v1"
+);
+```
+
+For a controlled development environment, explicitly enable all registered types:
+
+```cpp
+eventConsole.SetAccessPolicy(
+    ESPressio::Serial::
+        EventConsoleAccessPolicy::
+            AllRegistered
+);
+```
+
+Deny-list entries override allow-all:
+
+```cpp
+eventConsole.DenyEvent<
+    FactoryResetEvent
+>();
+```
+
+This prevents a registered administrative/destructive Event from becoming operator-dispatchable merely because a console is enabled.
+
+## Event discovery
+
+List runtime-registered Serializable Events:
+
+```text
+espressio> events
+
+Registered Serializable Events:
+  flowduino.camera.shutter.v1 [constructible] [allowed] schema=1 defaultRouting=Outbound
+  flowduino.motor.move.v1 [constructible] [allowed] schema=2 defaultRouting=Bidirectional
+  flowduino.system.factory-reset.v1 [constructible] [denied] schema=1 defaultRouting=None
+```
+
+The equivalent command is:
+
+```text
+event list
+```
+
+## Event schema description
+
+```text
+espressio> event describe flowduino.motor.move.v1
+```
+
+uses Event 5.6's runtime descriptor and Serializable schema metadata to report:
+
+```text
+stable Event type name
+stable Event type ID
+schema version
+runtime constructibility
+operator access
+default Event Transport direction
+property names
+property types
+required state
+read-only state
+sensitive metadata
+default-value availability
+aliases
+```
+
+Per-transport route names are not fabricated: Event 5.6 currently exposes the default routing direction through the public runtime descriptor.
+
+## One-line JSON dispatch
+
+Queue:
+
+```text
+event queue flowduino.motor.move.v1 {"axis":"pan","position":45,"speed":20}
+```
+
+Stack:
+
+```text
+event stack flowduino.motor.move.v1 {"axis":"pan","position":45,"speed":20}
+```
+
+`event dispatch` is a Queue alias.
+
+JSON is parsed through ESPressio Serializable's `JsonArchive`, converted to a representation-neutral `SerializationNode`, and passed to Event 5.6's runtime factory.
+
+## Interactive composition
+
+```text
+event compose flowduino.motor.move.v1
+```
+
+or:
+
+```text
+event compose flowduino.motor.move.v1 stack
+```
+
+prompts for a one-line JSON object:
+
+```text
+Enter one-line JSON object for flowduino.motor.move.v1 (or 'cancel'):
+{"axis":"pan","position":45,"speed":20}
+```
+
+## Serializable validation diagnostics
+
+Runtime-created Events use the normal ESPressio Serializable validation path.
+
+Validation errors are presented to the operator with:
+
+```text
+property path
+serialization error code
+diagnostic message
+```
+
+For example:
+
+```text
+Event payload validation failed with 2 issue(s):
+  speed: NumericOutOfRange - Property failed its numeric range constraint
+  axis: UnknownEnumValue - Value is not a registered enum mapping
+```
+
+No separate Serial-specific Event validation system exists.
+
+## Confirmation
+
+Confirmation is enabled by default:
+
+```text
+Dispatch Event 'flowduino.motor.move.v1' via Queue priority=Normal? [y/N]
+```
+
+Only `y` or `yes` proceeds; any other response cancels the dispatch.
+
+It can be disabled explicitly:
+
+```cpp
+EventConsoleConfig config;
+config.RequireConfirmation = false;
+```
+
+## Dispatch semantics
+
+Event Console uses Event 5.6's ownership-safe runtime dispatch API.
+
+Once dispatched, the Event follows the normal Event system:
+
+```text
+runtime-created Event
+        |
+        v
+Queue / Stack
+        |
+        v
+local Event dispatch
+        |
+        v
+EventTransportManager
+        |
+        v
+existing per-transport outbound routing
+```
+
+Event Console therefore knows nothing about ESP-NOW, UDP, TCP, WebSocket, MQTT, or another concrete Event transport.
+
+## Audit logging
+
+`EventConsole` can optionally send security/operation audit records to any existing:
+
+```cpp
+ILoggerSink
+```
+
+using:
+
+```cpp
+eventConsole.SetAuditSink(
+    &history
+);
+```
+
+Useful audit conditions include:
+
+```text
+successful operator dispatch
+denied dispatch
+unregistered type
+malformed JSON
+oversized JSON
+construction/validation failure
+dispatch failure
+```
+
+The Event payload itself is deliberately not copied into the audit message by default, avoiding accidental logging of sensitive properties.
+
+## Event Monitor integration
+
+Console-created Events naturally flow through the ordinary Event Transport pipeline.
+
+If `EventMonitor` is enabled, the same operator-created Event appears in its normal outbound/inbound transaction diagnostics without any special integration code.
+
+## Limits
+
+Operator JSON is bounded by:
+
+```cpp
+EventConsoleConfig::MaximumJsonLength
+```
+
+and the enclosing generic Console independently bounds total input line length.
+
+Queue and Stack dispatch can be independently disabled:
+
+```cpp
+config.AllowQueue = true;
+config.AllowStack = false;
+```
+
+## Examples
+
+Version 0.3.0 adds:
+
+```text
+examples/
+├── Console/
+│   └── Console.ino
+│
+├── EventConsole/
+│   └── EventConsole.ino
+│
+└── EventConsoleLoopback/
+    └── EventConsoleLoopback.ino
+```
+
+`EventConsoleLoopback` combines the operator console, Event Console, Event Monitor, Serializable Event, and a local loopback `IEventTransport` to demonstrate the complete:
+
+```text
+Serial JSON
+    -> runtime Event
+    -> local dispatch
+    -> Event Transport
+    -> inbound reconstruction
+    -> Serial Event Monitor
+```
+
+pipeline on one ESP32.
+
+## Tests
+
+The repository includes host-side tests for:
+
+```text
+generic Console command dispatch
+argument preservation
+multiple interactive line interceptors
+interceptor removal
+Stream polling
+runtime Event listing
+Event schema description
+allow-list enforcement
+JSON command processing
+pre-dispatch confirmation
+type-erased dispatch
+```
+
+The Event Console contract test uses narrow test doubles for Event 5.6 and the Serializable JSON adapter, while release preparation verifies compatibility with the real public API surface.
+
+---
 
 # Version 0.2.0 — Diagnostics & Logging
 
@@ -514,14 +934,14 @@ A project using only the core Serial library:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.2.0
+    flowduino/ESPressio-Serial@^0.3.0
 ```
 
 An application using Event Monitor requires:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.2.0
+    flowduino/ESPressio-Serial@^0.3.0
     flowduino/ESPressio-Event@^5.5.0
     flowduino/ESPressio-Serializable@^0.9.0
 ```
@@ -529,6 +949,28 @@ lib_deps =
 The Event/Serializable dependencies are intentionally not declared as mandatory package dependencies of ESPressio Serial because they are required only by the opt-in Event Monitor feature.
 
 ---
+
+
+## PlatformIO: Event Console
+
+The generic console requires only ESPressio Serial:
+
+```ini
+lib_deps =
+    flowduino/ESPressio-Serial@^0.3.0
+```
+
+The Event Console additionally requires the runtime Event and JSON stacks:
+
+```ini
+lib_deps =
+    flowduino/ESPressio-Serial@^0.3.0
+    flowduino/ESPressio-Event@^5.6.0
+    flowduino/ESPressio-Serializable@^0.9.0
+    bblanchon/ArduinoJson
+```
+
+ArduinoJson is required only because `EventConsole` selects ESPressio Serializable's optional `JsonArchive`; it remains unnecessary for core Serial, logging, diagnostics, and the generic Console.
 
 # Future direction
 
@@ -538,11 +980,12 @@ Potential future components include:
 
 ```text
 Serial Event Transport
-Serial command/console infrastructure
-System Clock / Threads diagnostic monitors
-structured ESPressio diagnostics output
+structured Event-based remote log sinks
+persistent diagnostic sinks
+additional subsystem console commands
 serial configuration interfaces
 serial protocol adapters
+operator authentication/session policy where appropriate
 ```
 
 Network/socket implementations belong in **ESPressio Sockets**.
@@ -555,24 +998,39 @@ Hardware-radio implementations belong in the planned **ESPressio Radio** library
 
 # Summary
 
-ESPressio Serial 0.1.0 establishes the Serial/console diagnostics layer of the ESPressio ecosystem.
-
-The initial architecture is:
+ESPressio Serial 0.3.0 provides three complementary layers:
 
 ```text
-ESPressio Event 5.5
-        |
-        | Event Transport Transaction Observation
-        v
-ESPressio Serial
-        |
-        | EventMonitor
-        v
-Arduino Print
-        |
-        +--> Hardware Serial
-        +--> USB CDC
-        +--> other Print destinations
+CORE
+    ESPressio_Serial.hpp
+    diagnostic types
+    no mandatory ESPressio dependency
+
+DIAGNOSTICS / LOGGING
+    Logger
+    SerialLogSink
+    DiagnosticRingBuffer
+    SystemClockMonitor          [opt-in Timing]
+    ThreadMonitor               [opt-in Threads]
+    EventMonitor                [opt-in Event + Serializable]
+    DiagnosticMonitor
+
+OPERATOR CONSOLE
+    Console
+        Stream input
+        Print output
+        extensible commands
+
+    EventConsole                [opt-in Event 5.6 + Serializable JSON]
+        runtime Event discovery
+        schema description
+        JSON composition
+        validation diagnostics
+        allow/deny policy
+        confirmation
+        Queue / Stack dispatch
 ```
 
-The core Serial library remains dependency-free with respect to other ESPressio libraries, while Event monitoring is explicitly opt-in.
+The central rule remains unchanged:
+
+**ESPressio Serial owns human/operator interaction and presentation; the upstream ESPressio libraries continue to own their underlying runtime semantics.**

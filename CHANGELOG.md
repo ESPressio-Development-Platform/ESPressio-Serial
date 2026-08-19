@@ -4,6 +4,42 @@ All notable changes to this project are documented in this file.
 
 The structure follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-08-19
+
+### Added
+
+- Added the **Interactive Runtime Serializable Event Console** feature.
+- Added the generic `Console` foundation using Arduino `Stream` input and `Print` output.
+- Added bounded line-oriented console input, configurable prompt/echo behaviour, command registration/unregistration, argument handling, and built-in help.
+- Added multiple simultaneous interactive line interceptors so independently implemented console extensions can coexist.
+- Added the opt-in `EventConsole` integration for ESPressio Event 5.6.0.
+- Added runtime listing of registered Serializable Event types.
+- Added runtime Event schema/metadata description using Event 5.6 `SerializableEventDescriptor` snapshots.
+- Added JSON-to-`SerializationNode` Event composition through ESPressio Serializable's optional `JsonArchive`.
+- Added detailed Serializable validation/deserialization issue reporting.
+- Added ownership-safe runtime Queue and Stack dispatch through Event 5.6.
+- Added one-line Event dispatch commands and interactive JSON composition mode.
+- Added optional pre-dispatch operator confirmation.
+- Added safe-by-default Event dispatch authorization using allow-list, allow-all, and deny-list policies; deny-list entries override broader access.
+- Added optional `ILoggerSink` audit integration for operator dispatch, denial, malformed JSON, and construction/dispatch failures.
+- Added `Console`, `EventConsole`, and `EventConsoleLoopback` examples.
+- Added host-side `Console` tests and an `EventConsole` contract test covering discovery, description, access policy, JSON command handling, confirmation, and dispatch.
+- Added the 0.3.0 feature specification.
+
+### Changed
+
+- Expanded ESPressio Serial from diagnostics/output tooling into an interactive operator/service-console layer.
+- Updated package metadata and build include paths for version 0.3.0.
+- Updated dependency documentation for ESPressio Event 5.6.0 and the optional Serializable JSON adapter.
+- Preserved the dependency-free core and all 0.1/0.2 diagnostics/logging interfaces.
+
+### Dependency model
+
+- Core ESPressio Serial continues to have no mandatory ESPressio library dependencies.
+- Generic `Console` requires no additional ESPressio dependency.
+- `EventConsole` is opt-in and requires ESPressio Event 5.6.0 or newer, ESPressio Serializable 0.9.0 or newer, and the optional ArduinoJson dependency used by `JsonArchive`.
+- Existing System Clock, Threads, Event Monitor, and logging integrations remain independently opt-in.
+
 ## [0.2.0] - 2026-08-19
 
 ### Added
