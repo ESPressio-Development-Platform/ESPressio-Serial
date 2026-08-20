@@ -6,7 +6,7 @@ Version 0.3.0 adds a reusable Stream/Print command console and an opt-in operato
 
 ## Latest Stable Version
 
-The latest stable version is **0.3.2**.
+The latest stable version is **0.3.3**.
 
 ## ESPressio Development Platform
 
@@ -49,8 +49,8 @@ The **core ESPressio Serial library has no required ESPressio library dependenci
 The Event Monitor is deliberately opt-in and requires:
 
 ```text
-ESPressio Event >= 5.6.2 < 6.0.0
-ESPressio Serializable >= 0.9.0 < 1.0.0
+ESPressio Event >= 5.7.1 < 6.0.0
+ESPressio Serializable >= 0.10.0 < 1.0.0
 ```
 
 For the complete ecosystem hierarchy, see:
@@ -76,7 +76,7 @@ Event 5.6.1 corrects `EventDispatchContext` equality semantics required by ESPre
 Applications using `EventConsole` should therefore target:
 
 ```ini
-flowduino/ESPressio-Event@^5.6.2
+flowduino/ESPressio-Event@^5.7.1
 ```
 
 The core Serial library and generic `Console` remain independent of ESPressio Event.
@@ -190,8 +190,8 @@ The Event Console is opt-in:
 and requires:
 
 ```text
-ESPressio Event >= 5.6.2
-ESPressio Serializable >= 0.9.0 < 1.0.0
+ESPressio Event >= 5.7.1
+ESPressio Serializable >= 0.10.0 < 1.0.0
 ArduinoJson (through the optional Serializable JsonArchive)
 ```
 
@@ -570,7 +570,7 @@ ESPressio::Serial::SystemClockMonitor<> clockMonitor;
 clockMonitor.Initialize(::Serial);
 ```
 
-This integration directly consumes ESPressio Timing 2.2.1's `ISystemClockObserver` notifications. It reports time-setting, synchronization acceptance/rejection, synchronization state changes, resets/configuration changes, and callback scheduling/execution.
+This integration directly consumes ESPressio Timing 2.2.2's `ISystemClockObserver` notifications. It reports time-setting, synchronization acceptance/rejection, synchronization state changes, resets/configuration changes, and callback scheduling/execution.
 
 Synchronization output includes the clock value before correction, the value after correction, and the immediate nanosecond difference.
 
@@ -586,7 +586,7 @@ ESPressio::Serial::ThreadMonitor threadMonitor;
 threadMonitor.Initialize(::Serial);
 ```
 
-`ThreadMonitor` directly observes the process-wide ESPressio Threads 3.1.1 infrastructure:
+`ThreadMonitor` directly observes the process-wide ESPressio Threads 3.1.2 infrastructure:
 
 ```text
 ThreadManager
@@ -635,14 +635,14 @@ Logging
     -> no additional ESPressio dependency
 
 SystemClockMonitor
-    - - -> ESPressio Timing >= 2.2.1 < 3.0.0
+    - - -> ESPressio Timing >= 2.2.2 < 3.0.0
 
 ThreadMonitor
-    - - -> ESPressio Threads >= 3.1.1 < 4.0.0
+    - - -> ESPressio Threads >= 3.1.2 < 4.0.0
 
 EventMonitor
-    - - -> ESPressio Event >= 5.6.2 < 6.0.0
-    - - -> ESPressio Serializable >= 0.9.0 < 1.0.0
+    - - -> ESPressio Event >= 5.7.1 < 6.0.0
+    - - -> ESPressio Serializable >= 0.10.0 < 1.0.0
 ```
 
 All ESPressio relationships remain opt-in.
@@ -951,16 +951,16 @@ A project using only the core Serial library:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.2
+    flowduino/ESPressio-Serial@^0.3.3
 ```
 
 An application using Event Monitor requires:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.2
-    flowduino/ESPressio-Event@^5.6.2
-    flowduino/ESPressio-Serializable@^0.9.0
+    flowduino/ESPressio-Serial@^0.3.3
+    flowduino/ESPressio-Event@^5.7.1
+    flowduino/ESPressio-Serializable@^0.10.0
 ```
 
 The Event/Serializable dependencies are intentionally not declared as mandatory package dependencies of ESPressio Serial because they are required only by the opt-in Event Monitor feature.
@@ -974,16 +974,16 @@ The generic console requires only ESPressio Serial:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.2
+    flowduino/ESPressio-Serial@^0.3.3
 ```
 
 The Event Console additionally requires the runtime Event and JSON stacks:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.2
-    flowduino/ESPressio-Event@^5.6.2
-    flowduino/ESPressio-Serializable@^0.9.0
+    flowduino/ESPressio-Serial@^0.3.3
+    flowduino/ESPressio-Event@^5.7.1
+    flowduino/ESPressio-Serializable@^0.10.0
     bblanchon/ArduinoJson
 ```
 
