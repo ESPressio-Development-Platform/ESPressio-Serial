@@ -1,11 +1,11 @@
 #pragma once
 
 #if !__has_include(<ESPressio_EventTransport.hpp>)
-#error "ESPressio EventConsole requires ESPressio Event >= 5.6.1."
+#error "ESPressio EventConsole requires ESPressio Event >= 5.7.1 < 6.0.0."
 #endif
 
 #if !__has_include(<ESPressio_JsonArchive.hpp>)
-#error "ESPressio EventConsole requires ESPressio Serializable >= 0.9.0 < 1.0.0 with the optional JSON adapter and ArduinoJson."
+#error "ESPressio EventConsole requires ESPressio Serializable >= 0.10.0 < 1.0.0 with the optional JSON adapter and ArduinoJson."
 #endif
 
 #include <algorithm>
