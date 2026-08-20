@@ -43,6 +43,7 @@ struct EventMonitorConfig {
     std::size_t MaximumHexPayloadBytes = 256;
     std::size_t MaximumCollectionItems = 64;
     std::size_t MaximumStringLength = 512;
+    std::size_t MaximumStructuredNodes = 1024;
     uint8_t MaximumStructuredDepth = 12;
     uint8_t IndentSpaces = 2;
 };
