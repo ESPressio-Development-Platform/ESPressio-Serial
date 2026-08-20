@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Serializable
-          ref: bugfix/2-binary-archive-decode-limits
+          ref: b4c5fa6045c8debf1371f74512ea8bf602d25877
           path: deps/ESPressio-Serializable
       - name: Configure
         run: >-
@@ -75,7 +75,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Serializable
-          ref: bugfix/2-binary-archive-decode-limits
+          ref: b4c5fa6045c8debf1371f74512ea8bf602d25877
           path: project/dependencies/ESPressio-Serializable
       - name: Checkout ESPressio Event 5.8.0
         uses: actions/checkout@v4
