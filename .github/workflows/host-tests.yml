@@ -11,11 +11,11 @@ jobs:
     steps:
       - name: Checkout Serial
         uses: actions/checkout@v4
-      - name: Checkout ESPressio Command
+      - name: Checkout ESPressio Command 0.2.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Command
-          ref: main
+          ref: 0.2.0
           path: deps/ESPressio-Command
       - name: Configure
         run: cmake -S tests -B build -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
