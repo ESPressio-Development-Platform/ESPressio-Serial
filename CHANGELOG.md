@@ -1,3 +1,23 @@
+## 0.5.1
+
+### Fixed
+
+- Hardened structured `EventMonitor` payload diagnostics so malformed, truncated, excessively nested, or otherwise unreasonable Event Transport payloads cannot be reparsed without monitor-specific decode limits.
+- Added fail-safe fallback from `Structured` to bounded `Hex` output whenever a payload fails structured validation.
+- Updated Event Monitor's optional Serializable baseline to ESPressio Serializable >= 0.10.1 < 1.0.0, consuming the bounded `BinaryArchive` decoder introduced for Flowduino/ESPressio-Serializable#2.
+
+### Added
+
+- Added `MaximumStructuredNodes` to `EventMonitorConfig` alongside the existing collection, string, and nesting limits.
+- Added deterministic malformed/deep/random payload regression and stress coverage for the EventMonitor structured-payload validation path.
+- Added ESP32 compile validation for `EventMonitor` against Event 5.8.0 and the Serializable 0.10.1 bug-fix generation.
+
+### Compatibility
+
+- Core Serial remains dependency-free.
+- EventMonitor remains opt-in.
+- Existing structured output remains unchanged for payloads that validate successfully.
+
 ## 0.5.0
 
 - Added opt-in `CommandMonitor` for ESPressio Command 0.3.x registry lifecycle observation.
