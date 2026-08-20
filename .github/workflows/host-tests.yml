@@ -2,7 +2,7 @@ name: Host Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/observable-callback-coverage]
   pull_request:
 
 jobs:
@@ -11,11 +11,11 @@ jobs:
     steps:
       - name: Checkout Serial
         uses: actions/checkout@v4
-      - name: Checkout ESPressio Command 0.2.0
+      - name: Checkout ESPressio Command 0.3.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Command
-          ref: 0.2.0
+          ref: 0.3.0
           path: deps/ESPressio-Command
       - name: Configure
         run: cmake -S tests -B build -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
@@ -23,3 +23,99 @@ jobs:
         run: cmake --build build --parallel
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+  esp32-observable-monitors:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Serial
+        uses: actions/checkout@v4
+        with:
+          path: project/ESPressio-Serial
+      - name: Checkout ESPressio Observable 3.0.1
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Observable
+          ref: 3.0.1
+          path: project/dependencies/ESPressio-Observable
+      - name: Checkout ESPressio Units 0.2.1
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Units
+          ref: 0.2.1
+          path: project/dependencies/ESPressio-Units
+      - name: Checkout ESPressio Timing 2.2.2
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Timing
+          ref: 2.2.2
+          path: project/dependencies/ESPressio-Timing
+      - name: Checkout ESPressio Command 0.3.0
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Command
+          ref: 0.3.0
+          path: project/dependencies/ESPressio-Command
+      - name: Checkout ESPressio Security 0.2.0
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Security
+          ref: 0.2.0
+          path: project/dependencies/ESPressio-Security
+      - name: Checkout ESPressio Sockets 0.5.0
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Sockets
+          ref: 0.5.0
+          path: project/dependencies/ESPressio-Sockets
+      - name: Checkout ESPressio ESP-Now 0.5.0
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-ESP-Now
+          ref: 0.5.0
+          path: project/dependencies/ESPressio-ESP-Now
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install PlatformIO
+        run: pip install platformio
+      - name: Create monitor compile project
+        shell: bash
+        run: |
+          mkdir -p project/compile/src
+          cat > project/compile/platformio.ini <<'EOF'
+          [env:esp32]
+          platform = espressif32
+          board = esp32dev
+          framework = arduino
+          build_flags =
+              -std=gnu++17
+              -frtti
+              -I../dependencies/ESPressio-Command/src
+              -I../dependencies/ESPressio-Security/src
+              -I../dependencies/ESPressio-Sockets/src
+              -I../dependencies/ESPressio-ESP-Now/src
+          build_unflags =
+              -std=gnu++11
+              -fno-rtti
+          lib_ldf_mode = deep+
+          lib_deps =
+              WiFi
+              ../dependencies/ESPressio-Observable
+              ../dependencies/ESPressio-Units
+              ../dependencies/ESPressio-Timing
+              ../ESPressio-Serial
+          EOF
+          cat > project/compile/src/main.cpp <<'EOF'
+          #include <Arduino.h>
+          #include <WiFi.h>
+          #include <ESPressio_CommandMonitor.hpp>
+          #include <ESPressio_SecurityMonitor.hpp>
+          #include <ESPressio_SocketWorkerMonitor.hpp>
+          #include <ESPressio_SocketSecuritySessionMonitor.hpp>
+          #include <ESPressio_ESPNowTransportMonitor.hpp>
+
+          void setup() {}
+          void loop() {}
+          EOF
+      - name: Compile ESP32 Observable monitors
+        run: pio run -d project/compile
