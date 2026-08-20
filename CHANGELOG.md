@@ -11,7 +11,13 @@
 
 - Added `MaximumStructuredNodes` to `EventMonitorConfig` alongside the existing collection, string, and nesting limits.
 - Added deterministic malformed/deep/random payload regression and stress coverage for the EventMonitor structured-payload validation path.
-- Added ESP32 compile validation for `EventMonitor` against Event 5.8.0 and the Serializable 0.10.1 bug-fix generation.
+- Added ESP32 compile validation for `EventMonitor` against the coordinated dependency-refresh candidates: Units 0.2.2, Timing 2.2.3, Threads 3.1.3, ESP-Now 0.5.1, Event 5.8.1, and released Serializable 0.10.1.
+
+### Changed
+
+- Raised the current optional Event integration baseline to ESPressio Event >= 5.8.1 < 6.0.0.
+- Raised the current optional ESP-Now monitor baseline to ESPressio ESP-Now >= 0.5.1 < 1.0.0.
+- Updated current documentation and CI to consume the completed Serializable 0.10.1 dependency cascade rather than intermediate bug-fix commits.
 
 ### Compatibility
 
