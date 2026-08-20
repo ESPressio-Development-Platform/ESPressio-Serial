@@ -17,8 +17,17 @@ jobs:
           repository: Flowduino/ESPressio-Command
           ref: 0.3.0
           path: deps/ESPressio-Command
+      - name: Checkout ESPressio Observable 3.0.1
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Observable
+          ref: 3.0.1
+          path: deps/ESPressio-Observable
       - name: Configure
-        run: cmake -S tests -B build -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
+        run: >-
+          cmake -S tests -B build
+          -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
+          -DESPRESSIO_OBSERVABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Observable/src"
       - name: Build
         run: cmake --build build --parallel
       - name: Test
@@ -99,7 +108,6 @@ jobs:
               -fno-rtti
           lib_ldf_mode = deep+
           lib_deps =
-              WiFi
               ../dependencies/ESPressio-Observable
               ../dependencies/ESPressio-Units
               ../dependencies/ESPressio-Timing
