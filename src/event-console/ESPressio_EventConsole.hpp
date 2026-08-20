@@ -1393,6 +1393,7 @@ public:
         _commandBacked = true;
 
         _eventCommandRegistration = registry->RegisterCommand("event");
+        if (!_eventCommandRegistration.Active()) { Shutdown(); return false; }
         auto& event = registry->Command("event").Description("Serializable Event discovery, description, composition and dispatch");
 
         event.Command("list").Description("List runtime-registered Serializable Events").OnExecute([this](const Command::CommandContext&) { ListEvents(); return Command::CommandResult::Ok(); });
@@ -1423,6 +1424,7 @@ public:
         registerDispatch("dispatch", Event::EventDispatchMethod::Queue);
 
         _eventsCommandRegistration = registry->RegisterCommand("events");
+        if (!_eventsCommandRegistration.Active()) { Shutdown(); return false; }
         registry->Command("events").Description("List runtime-registered Serializable Events").OnExecute([this](const Command::CommandContext&) { ListEvents(); return Command::CommandResult::Ok(); });
 
         _interceptorID = console->RegisterLineInterceptor([this](std::string_view line) { return HandleInteractiveLine(line); });
