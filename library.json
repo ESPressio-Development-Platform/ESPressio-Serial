@@ -1,7 +1,7 @@
 {
     "name": "ESPressio-Serial",
-    "description": "Serial and console-oriented components for ESPressio, including opt-in ESPressio Command and Event integrations.",
-    "keywords": "esp32,serial,console,monitor,event,transport,diagnostics,espressio",
+    "description": "Serial and console-oriented components for ESPressio, including opt-in Observable, Command and Event integrations.",
+    "keywords": "esp32,serial,console,monitor,event,transport,diagnostics,observable,espressio",
     "authors": {
         "name": "Flowduino",
         "maintainer": true,
@@ -16,7 +16,7 @@
         "type": "git",
         "url": "https://github.com/Flowduino/ESPressio-Serial.git"
     },
-    "version": "0.4.0",
+    "version": "0.5.0",
     "license": "Apache-2.0",
     "frameworks": "arduino",
     "platforms": "espressif32"
