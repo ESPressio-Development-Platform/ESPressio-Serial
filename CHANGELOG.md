@@ -1,3 +1,13 @@
+## 0.5.0
+
+- Added opt-in `CommandMonitor` for ESPressio Command 0.3.x registry lifecycle observation.
+- Added opt-in `SecurityMonitor` for ESPressio Security 0.2.x configuration, session, replay and failure observation.
+- Added opt-in `SocketWorkerMonitor` and `SocketSecuritySessionMonitor` for ESPressio Sockets 0.5.x lifecycle observation.
+- Added opt-in `ESPNowTransportMonitor` for ESPressio ESP-Now 0.5.x transport, peer and send lifecycle observation.
+- Extended `DiagnosticMonitor` with optional Command and ESP-Now monitoring while preserving its existing default behavior.
+- Updated the validated optional ESPressio Event integration baseline to Event 5.8.0 within the 5.x line.
+- Preserved Serial's dependency-free core: all new monitors are selected explicitly and observe the originating subsystem rather than duplicating its lifecycle semantics.
+
 ## 0.4.0
 
 - Added optional ESPressio Command 0.2.x integration through `CommandConsole`.

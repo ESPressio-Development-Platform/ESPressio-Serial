@@ -8,6 +8,36 @@ Version 0.3.0 adds a reusable Stream/Print command console and an opt-in operato
 
 The latest stable version is **0.4.0**.
 
+## Current Development Version — 0.5.0
+
+The `feature/observable-callback-coverage` branch targets **0.5.0** and extends Serial's diagnostics layer to consume the new Observable lifecycle contracts provided by ESPressio Command, Security, Sockets, and ESP-Now.
+
+Core ESPressio Serial remains free of mandatory ESPressio-library dependencies. The new monitors are selected only when their corresponding upstream headers are available:
+
+```text
+CommandMonitor
+    - - -> ESPressio Command >= 0.3.0 < 1.0.0
+
+SecurityMonitor
+    - - -> ESPressio Security >= 0.2.0 < 1.0.0
+
+SocketWorkerMonitor
+    - - -> ESPressio Sockets >= 0.5.0 < 1.0.0
+
+SocketSecuritySessionMonitor
+    - - -> ESPressio Sockets >= 0.5.0 < 1.0.0
+    - - -> ESPressio Security >= 0.2.0 < 1.0.0
+
+ESPNowTransportMonitor
+    - - -> ESPressio ESP-Now >= 0.5.0 < 1.0.0
+```
+
+`DiagnosticMonitor` can additionally compose `CommandMonitor` and `ESPNowTransportMonitor` when those dependencies are present. Security and Socket monitors remain instance-oriented because the application must choose the specific `TransportSecurity`, `SocketWorker`, or `SocketSecuritySession` object to observe.
+
+These monitors subscribe directly to the originating library's Observable contract. They do not invent parallel Serial lifecycle semantics and do not require ESPressio Event. Event-backed observation remains a separate opt-in integration in ESPressio Event 5.8.0.
+
+The complete historical/stable documentation below remains intact.
+
 ## ESPressio Development Platform
 
 ESPressio is a collection of discrete, composable component libraries designed around a common development ethos:
@@ -52,6 +82,8 @@ The Event Monitor is deliberately opt-in and requires:
 ESPressio Event >= 5.7.1 < 6.0.0
 ESPressio Serializable >= 0.10.0 < 1.0.0
 ```
+
+For the 0.5.0 development branch, the additional opt-in monitoring dependencies are listed in the development-version section above. Existing Event Monitor/EventConsole guidance below remains the stable 0.4.0 baseline unless explicitly identified otherwise.
 
 For the complete ecosystem hierarchy, see:
 
@@ -625,6 +657,8 @@ void setup() {
 
 The aggregate uses compile-time feature detection. It does not itself make Timing, Threads, Event, or Serializable mandatory package dependencies.
 
+In the 0.5.0 development branch, `DiagnosticMonitorConfig` additionally supports `Commands` and `ESPNow`. These remain disabled by default and are available only when the corresponding optional upstream headers are present.
+
 ## Dependency model
 
 ```text
@@ -645,7 +679,7 @@ EventMonitor
     - - -> ESPressio Serializable >= 0.10.0 < 1.0.0
 ```
 
-All ESPressio relationships remain opt-in.
+All ESPressio relationships remain opt-in. The 0.5.0 development observer monitors add the additional optional relationships documented near the top of this README.
 
 ---
 
