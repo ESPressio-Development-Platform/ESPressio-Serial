@@ -25,14 +25,16 @@ SocketSecuritySessionMonitor
     - - -> ESPressio Security >= 0.2.0 < 1.0.0
 
 ESPNowTransportMonitor
-    - - -> ESPressio ESP-Now >= 0.5.0 < 1.0.0
+    - - -> ESPressio ESP-Now >= 0.5.1 < 1.0.0
 ```
 
 `DiagnosticMonitor` can additionally compose `CommandMonitor` and `ESPNowTransportMonitor` when those dependencies are present. Security and Socket monitors remain instance-oriented because the application must choose the specific `TransportSecurity`, `SocketWorker`, or `SocketSecuritySession` object to observe.
 
-These monitors subscribe directly to the originating library's Observable contract. They do not invent parallel Serial lifecycle semantics and do not require ESPressio Event. Event-backed observation remains a separate opt-in integration in ESPressio Event 5.8.0.
+These monitors subscribe directly to the originating library's Observable contract. They do not invent parallel Serial lifecycle semantics and do not require ESPressio Event. Event-backed observation remains a separate opt-in integration in ESPressio Event 5.8.1.
 
 Historical documentation for earlier release generations remains below where useful.
+
+Current coordinated dependency baselines for the 0.5.1 release are Units 0.2.2, Timing 2.2.3, Threads 3.1.3, ESP-Now 0.5.1, Event 5.8.1, and Serializable 0.10.1. Command 0.3.0, Security 0.2.0, and Sockets 0.5.0 remain the current optional integration baselines.
 
 ## ESPressio Development Platform
 
@@ -75,7 +77,7 @@ The **core ESPressio Serial library has no required ESPressio library dependenci
 The Event Monitor is deliberately opt-in and requires:
 
 ```text
-ESPressio Event >= 5.8.0 < 6.0.0
+ESPressio Event >= 5.8.1 < 6.0.0
 ESPressio Serializable >= 0.10.1 < 1.0.0
 ```
 
@@ -987,7 +989,7 @@ An application using Event Monitor requires:
 ```ini
 lib_deps =
     flowduino/ESPressio-Serial@^0.5.1
-    flowduino/ESPressio-Event@^5.8.0
+    flowduino/ESPressio-Event@^5.8.1
     flowduino/ESPressio-Serializable@^0.10.1
 ```
 
@@ -1010,7 +1012,7 @@ The Event Console additionally requires the runtime Event and JSON stacks:
 ```ini
 lib_deps =
     flowduino/ESPressio-Serial@^0.5.1
-    flowduino/ESPressio-Event@^5.8.0
+    flowduino/ESPressio-Event@^5.8.1
     flowduino/ESPressio-Serializable@^0.10.1
     bblanchon/ArduinoJson
 ```
