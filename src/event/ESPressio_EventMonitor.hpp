@@ -5,7 +5,7 @@
 #endif
 
 #if !__has_include(<ESPressio_BinaryArchive.hpp>)
-#error "ESPressio EventMonitor requires ESPressio Serializable >= 0.9.0 < 1.0.0."
+#error "ESPressio EventMonitor requires ESPressio Serializable >= 0.10.1 < 1.0.0."
 #endif
 
 #include <mutex>
@@ -15,6 +15,7 @@
 
 #include "../ESPressio_SerialTypes.hpp"
 #include "ESPressio_EventMonitorFormatter.hpp"
+#include "ESPressio_EventMonitorPayloadSafety.hpp"
 
 namespace ESPressio::Serial {
 
@@ -163,11 +164,32 @@ public:
             return;
         }
 
+        EventMonitorConfig effectiveConfig =
+            _config;
+
+        if (
+            effectiveConfig.PayloadFormat ==
+                EventMonitorPayloadFormat::Structured &&
+            transaction.Payload != nullptr &&
+            transaction.PayloadSize != 0 &&
+            !ValidateStructuredEventPayload(
+                transaction.Payload,
+                transaction.PayloadSize,
+                effectiveConfig
+            )
+        ) {
+            // Diagnostics must never make an invalid/unreasonable payload
+            // fatal to the application. Preserve visibility with a bounded
+            // hex fallback instead of attempting structured tree rendering.
+            effectiveConfig.PayloadFormat =
+                EventMonitorPayloadFormat::Hex;
+        }
+
         EventMonitorFormatter::
             PrintTransaction(
                 *_output,
                 transaction,
-                _config
+                effectiveConfig
             );
     }
 };
