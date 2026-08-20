@@ -2,15 +2,11 @@
 
 Serial and console-oriented components for the Flowduino ESPressio Development Platform.
 
-Version 0.3.0 adds a reusable Stream/Print command console and an opt-in operator-facing Event Console capable of discovering, describing, composing as JSON, validating, and dispatching runtime-registered Serializable Events through ESPressio Event 5.6.1.
+Version 0.5.0 expands ESPressio Serial diagnostics with opt-in Observable-backed monitors for ESPressio Command, Security, Sockets, and ESP-Now while preserving the dependency-free Serial core and existing Console/Event integrations.
 
-## Latest Stable Version
+## Current Version — 0.5.0
 
-The latest stable version is **0.4.0**.
-
-## Current Development Version — 0.5.0
-
-The `feature/observable-callback-coverage` branch targets **0.5.0** and extends Serial's diagnostics layer to consume the new Observable lifecycle contracts provided by ESPressio Command, Security, Sockets, and ESP-Now.
+Version **0.5.0** extends Serial's diagnostics layer to consume the Observable lifecycle contracts provided by ESPressio Command, Security, Sockets, and ESP-Now.
 
 Core ESPressio Serial remains free of mandatory ESPressio-library dependencies. The new monitors are selected only when their corresponding upstream headers are available:
 
@@ -36,7 +32,7 @@ ESPNowTransportMonitor
 
 These monitors subscribe directly to the originating library's Observable contract. They do not invent parallel Serial lifecycle semantics and do not require ESPressio Event. Event-backed observation remains a separate opt-in integration in ESPressio Event 5.8.0.
 
-The complete historical/stable documentation below remains intact.
+Historical documentation for earlier release generations remains below where useful.
 
 ## ESPressio Development Platform
 
@@ -79,11 +75,11 @@ The **core ESPressio Serial library has no required ESPressio library dependenci
 The Event Monitor is deliberately opt-in and requires:
 
 ```text
-ESPressio Event >= 5.7.1 < 6.0.0
+ESPressio Event >= 5.8.0 < 6.0.0
 ESPressio Serializable >= 0.10.0 < 1.0.0
 ```
 
-For the 0.5.0 development branch, the additional opt-in monitoring dependencies are listed in the development-version section above. Existing Event Monitor/EventConsole guidance below remains the stable 0.4.0 baseline unless explicitly identified otherwise.
+The additional opt-in monitoring dependencies for 0.5.0 are listed above. Historical sections below retain older release-specific baselines where those versions are part of the documented history.
 
 For the complete ecosystem hierarchy, see:
 
@@ -657,7 +653,7 @@ void setup() {
 
 The aggregate uses compile-time feature detection. It does not itself make Timing, Threads, Event, or Serializable mandatory package dependencies.
 
-In the 0.5.0 development branch, `DiagnosticMonitorConfig` additionally supports `Commands` and `ESPNow`. These remain disabled by default and are available only when the corresponding optional upstream headers are present.
+In 0.5.0, `DiagnosticMonitorConfig` additionally supports `Commands` and `ESPNow`. These remain disabled by default and are available only when the corresponding optional upstream headers are present.
 
 ## Dependency model
 
@@ -675,11 +671,11 @@ ThreadMonitor
     - - -> ESPressio Threads >= 3.1.2 < 4.0.0
 
 EventMonitor
-    - - -> ESPressio Event >= 5.7.1 < 6.0.0
+    - - -> ESPressio Event >= 5.8.0 < 6.0.0
     - - -> ESPressio Serializable >= 0.10.0 < 1.0.0
 ```
 
-All ESPressio relationships remain opt-in. The 0.5.0 development observer monitors add the additional optional relationships documented near the top of this README.
+All ESPressio relationships remain opt-in. The 0.5.0 observer monitors add the additional optional relationships documented near the top of this README.
 
 ---
 
@@ -985,15 +981,15 @@ A project using only the core Serial library:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.4.0
+    flowduino/ESPressio-Serial@^0.5.0
 ```
 
 An application using Event Monitor requires:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.4.0
-    flowduino/ESPressio-Event@^5.7.1
+    flowduino/ESPressio-Serial@^0.5.0
+    flowduino/ESPressio-Event@^5.8.0
     flowduino/ESPressio-Serializable@^0.10.0
 ```
 
@@ -1008,15 +1004,15 @@ The generic console requires only ESPressio Serial:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.4.0
+    flowduino/ESPressio-Serial@^0.5.0
 ```
 
 The Event Console additionally requires the runtime Event and JSON stacks:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.4.0
-    flowduino/ESPressio-Event@^5.7.1
+    flowduino/ESPressio-Serial@^0.5.0
+    flowduino/ESPressio-Event@^5.8.0
     flowduino/ESPressio-Serializable@^0.10.0
     bblanchon/ArduinoJson
 ```
