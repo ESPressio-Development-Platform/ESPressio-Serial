@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.3 — 2026-08-20
+
+### Changed
+- Updated the validated optional ESPressio Event integration baseline from Event 5.6.2 to Event 5.7.1 within the 5.x line.
+- Updated referenced Timing and Threads baselines to Timing 2.2.2 and Threads 3.1.2, matching the cascaded dependency-refresh release chain.
+- Updated the validated Serializable baseline to 0.10.0 for Event Monitor/EventConsole integrations that consume Serializable facilities.
+- Updated package metadata for Serial 0.3.3.
+- Core Serial, Console, logging, and diagnostics remain dependency-free unless the corresponding ESPressio integration is explicitly selected.
+- No Serial public interfaces or runtime semantics changed.
+
 ## 0.3.2 — 2026-08-19
 
 ### Changed
