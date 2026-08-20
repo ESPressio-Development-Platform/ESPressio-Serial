@@ -1,0 +1,25 @@
+name: Host Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Serial
+        uses: actions/checkout@v4
+      - name: Checkout ESPressio Command
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Command
+          ref: main
+          path: deps/ESPressio-Command
+      - name: Configure
+        run: cmake -S tests -B build -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
