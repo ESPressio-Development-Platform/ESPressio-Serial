@@ -2,6 +2,7 @@ idf_component_register(
     INCLUDE_DIRS
         "src"
         "src/console"
+        "src/command-console"
         "src/diagnostics"
         "src/event"
         "src/event-console"
