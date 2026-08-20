@@ -47,6 +47,7 @@ target_compile_options(test_event_monitor_payload_safety PRIVATE -Wall -Wextra -
 target_include_directories(
     test_event_monitor_payload_safety
     PRIVATE
+    stubs
     ../src
     ${ESPRESSIO_SERIALIZABLE_INCLUDE_DIR}
 )
