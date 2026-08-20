@@ -22,6 +22,9 @@
 #include <Arduino.h>
 #include <ESPressio_EventTransport.hpp>
 #include <ESPressio_JsonArchive.hpp>
+#include <ESPressio_Command.hpp>
+
+#include "../command-console/ESPressio_CommandConsole.hpp"
 
 #include "../console/ESPressio_Console.hpp"
 #include "../logging/ESPressio_ILoggerSink.hpp"
@@ -54,6 +57,10 @@ private:
     ILoggerSink* _auditSink = nullptr;
 
     uint32_t _interceptorID = 0;
+
+    Command::CommandRegistrationHandle _eventCommandRegistration;
+    Command::CommandRegistrationHandle _eventsCommandRegistration;
+    bool _commandBacked = false;
 
     InteractionState _state =
         InteractionState::None;
@@ -1369,6 +1376,60 @@ private:
 
 
 public:
+    bool Initialize(
+        CommandConsole& commandConsole,
+        const EventConsoleConfig& config = {},
+        Event::EventTransportManager& manager = Event::EventTransportManager::GetInstance()
+    ) {
+        Shutdown();
+        Console* console = commandConsole.GetConsole();
+        Command::CommandRegistry* registry = commandConsole.GetRegistry();
+        if (console == nullptr || registry == nullptr || console->GetOutput() == nullptr) return false;
+
+        _console = console;
+        _output = console->GetOutput();
+        _manager = &manager;
+        _config = config;
+        _commandBacked = true;
+
+        _eventCommandRegistration = registry->RegisterCommand("event");
+        auto& event = registry->Command("event").Description("Serializable Event discovery, description, composition and dispatch");
+
+        event.Command("list").Description("List runtime-registered Serializable Events").OnExecute([this](const Command::CommandContext&) { ListEvents(); return Command::CommandResult::Ok(); });
+        auto& describe = event.Command("describe").Description("Describe a runtime-registered Serializable Event");
+        describe.Parameter<std::string>("type").Description("Stable Event type name");
+        describe.OnExecute([this](const Command::CommandContext& c) { DescribeEvent(c.Get<std::string>("type")); return Command::CommandResult::Ok(); });
+
+        event.Command("cancel").Description("Cancel a pending Event composition/dispatch").OnExecute([this](const Command::CommandContext&) { std::lock_guard<std::mutex> lock(_mutex); CancelPending("Pending Event operation cancelled."); return Command::CommandResult::Ok(); });
+
+        auto& compose = event.Command("compose").Description("Interactively compose a Serializable Event");
+        compose.Parameter<std::string>("type").Description("Stable Event type name");
+        compose.Parameter<std::string>("method").Optional().Default("queue").OneOf({"queue", "stack"});
+        compose.OnExecute([this](const Command::CommandContext& c) { std::string args = c.Get<std::string>("type") + " " + c.Get<std::string>("method"); std::lock_guard<std::mutex> lock(_mutex); BeginCompose(args); return Command::CommandResult::Ok(); });
+
+        auto registerDispatch = [this, &event](const char* name, Event::EventDispatchMethod method) {
+            auto& node = event.Command(name).Description(std::string("Dispatch a Serializable Event via ") + (method == Event::EventDispatchMethod::Stack ? "Stack" : "Queue"));
+            node.Parameter<std::string>("type").Description("Stable Event type name");
+            node.Parameter<std::string>("json").Description("One-line JSON payload");
+            node.OnExecute([this, method](const Command::CommandContext& c) {
+                if ((method == Event::EventDispatchMethod::Queue && !_config.AllowQueue) || (method == Event::EventDispatchMethod::Stack && !_config.AllowStack)) return Command::CommandResult::Error("Requested dispatch method is disabled");
+                std::lock_guard<std::mutex> lock(_mutex);
+                ConstructAndDispatch(c.Get<std::string>("type"), c.Get<std::string>("json"), method);
+                return Command::CommandResult::Ok();
+            });
+        };
+        registerDispatch("queue", Event::EventDispatchMethod::Queue);
+        registerDispatch("stack", Event::EventDispatchMethod::Stack);
+        registerDispatch("dispatch", Event::EventDispatchMethod::Queue);
+
+        _eventsCommandRegistration = registry->RegisterCommand("events");
+        registry->Command("events").Description("List runtime-registered Serializable Events").OnExecute([this](const Command::CommandContext&) { ListEvents(); return Command::CommandResult::Ok(); });
+
+        _interceptorID = console->RegisterLineInterceptor([this](std::string_view line) { return HandleInteractiveLine(line); });
+        if (_interceptorID == 0) { Shutdown(); return false; }
+        return true;
+    }
+
     EventConsole() = default;
 
     EventConsole(
@@ -1484,7 +1545,7 @@ public:
 
 
     void Shutdown() {
-        if (_console != nullptr) {
+        if (_console != nullptr && !_commandBacked) {
             _console->
                 UnregisterCommand(
                     "event"
@@ -1510,6 +1571,9 @@ public:
             CancelPending();
         }
 
+        _eventCommandRegistration.Reset();
+        _eventsCommandRegistration.Reset();
+        _commandBacked = false;
         _interceptorID = 0;
         _console = nullptr;
         _output = nullptr;

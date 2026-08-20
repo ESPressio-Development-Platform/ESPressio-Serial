@@ -6,7 +6,7 @@ Version 0.3.0 adds a reusable Stream/Print command console and an opt-in operato
 
 ## Latest Stable Version
 
-The latest stable version is **0.3.3**.
+The latest stable version is **0.4.0**.
 
 ## ESPressio Development Platform
 
@@ -951,14 +951,14 @@ A project using only the core Serial library:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.3
+    flowduino/ESPressio-Serial@^0.4.0
 ```
 
 An application using Event Monitor requires:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.3
+    flowduino/ESPressio-Serial@^0.4.0
     flowduino/ESPressio-Event@^5.7.1
     flowduino/ESPressio-Serializable@^0.10.0
 ```
@@ -974,14 +974,14 @@ The generic console requires only ESPressio Serial:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.3
+    flowduino/ESPressio-Serial@^0.4.0
 ```
 
 The Event Console additionally requires the runtime Event and JSON stacks:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.3.3
+    flowduino/ESPressio-Serial@^0.4.0
     flowduino/ESPressio-Event@^5.7.1
     flowduino/ESPressio-Serializable@^0.10.0
     bblanchon/ArduinoJson
@@ -1051,3 +1051,62 @@ OPERATOR CONSOLE
 The central rule remains unchanged:
 
 **ESPressio Serial owns human/operator interaction and presentation; the upstream ESPressio libraries continue to own their underlying runtime semantics.**
+
+
+## ESPressio Command Integration (0.4.0)
+
+Serial 0.4.0 adds an opt-in bridge to **ESPressio Command >= 0.2.0 < 1.0.0**. Core Serial remains usable without Command. Include `ESPressio_CommandConsole.hpp` only when the integration is required.
+
+```ini
+lib_deps =
+    flowduino/ESPressio-Serial@^0.4.0
+    flowduino/ESPressio-Command@^0.2.0
+```
+
+```cpp
+#include <ESPressio_Console.hpp>
+#include <ESPressio_CommandConsole.hpp>
+#include <ESPressio_Commands.hpp>
+
+ESPressio::Serial::Console console;
+ESPressio::Serial::CommandConsole commandConsole;
+
+void setup() {
+    console.Initialize(Serial, Serial);
+    commandConsole.Initialize(console);
+
+    auto& commands = ESPressio::Command::CommandRegistry::GetInstance();
+    commands.Command("system").Command("status")
+        .OnExecute([](const ESPressio::Command::CommandContext&) {
+            return ESPressio::Command::CommandResult::Ok("System OK");
+        });
+}
+
+void loop() { console.Poll(); }
+```
+
+`CommandConsole` reuses Serial's existing input/prompt handling and forwards resolvable lines into the shared transport-neutral Command registry. Unknown roots fall through so other Console interceptors and legacy commands can continue to coexist.
+
+### EventConsole on the shared Command tree
+
+When Command integration is selected, initialize EventConsole with `CommandConsole`:
+
+```cpp
+ESPressio::Serial::EventConsole eventConsole;
+eventConsole.Initialize(commandConsole);
+```
+
+EventConsole then registers the following shared Command tree with ownership-safe registration handles:
+
+```text
+event list
+event describe <type>
+event compose <type> [queue|stack]
+event queue <type> <json>
+event stack <type> <json>
+event dispatch <type> <json>
+event cancel
+events
+```
+
+Shutdown removes the registered subtrees, preventing callbacks from outliving the EventConsole instance. The previous `Initialize(Console&, ...)` overload remains available for compatibility with existing applications.

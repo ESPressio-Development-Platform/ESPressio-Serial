@@ -1,3 +1,11 @@
+## 0.4.0
+
+- Added optional ESPressio Command 0.2.x integration through `CommandConsole`.
+- Added a Command-backed EventConsole initialization path and registered `event`/`events` command trees.
+- Preserved the legacy Console registration path for backward compatibility.
+- Added scoped Command registration cleanup during EventConsole shutdown.
+- Updated integration guidance for the current ESPressio dependency generation.
+
 # Changelog
 
 ## 0.3.3 — 2026-08-20
