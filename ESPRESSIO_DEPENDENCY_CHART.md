@@ -1,125 +1,128 @@
-# ESPressio Dependency Chart
+# ESPressio Dependency Chart — Serial 0.5.1
 
 ![ESPressio Library Dependency Chart](ESPRESSIO_DEPENDENCY_CHART.png)
 
-## Purpose
-
-This document describes the current dependency relationships between ESPressio libraries relevant to ESPressio Serial 0.5.1.
-
-The chart is hierarchical: libraries with no **required** ESPressio dependencies appear at the top, while libraries that build on progressively more of the ecosystem appear lower.
-
-- **Solid arrow** — required ESPressio dependency.
-- **Dashed arrow** — opt-in dependency activated only by the associated feature/header.
-- Arrows point from the dependent library to the library it consumes.
-
 ## ESPressio Serial 0.5.1
 
-The ESPressio Serial core and generic `Console` have no required ESPressio dependency.
+The Serial core and generic `Console` have no mandatory ESPressio dependencies.
+All ESPressio integrations remain opt-in.
 
-All integrations remain opt-in.
-
-### CommandConsole and CommandMonitor
-
-`CommandConsole` and `CommandMonitor` consume:
+### Current integration baselines
 
 ```text
-ESPressio Command >= 0.3.0 < 1.0.0
+CommandConsole / CommandMonitor
+    - - -> ESPressio Command >= 0.3.0 < 1.0.0
+
+SecurityMonitor
+    - - -> ESPressio Security >= 0.2.0 < 1.0.0
+
+SocketWorkerMonitor
+    - - -> ESPressio Sockets >= 0.5.0 < 1.0.0
+
+SocketSecuritySessionMonitor
+    - - -> ESPressio Sockets >= 0.5.0 < 1.0.0
+    - - -> ESPressio Security >= 0.2.0 < 1.0.0
+
+ESPNowTransportMonitor
+    - - -> ESPressio ESP-Now >= 0.5.1 < 1.0.0
+
+SystemClockMonitor
+    - - -> ESPressio Timing >= 2.2.3 < 3.0.0
+
+ThreadMonitor
+    - - -> ESPressio Threads >= 3.1.3 < 4.0.0
+
+EventMonitor / EventConsole
+    - - -> ESPressio Event >= 5.8.1 < 6.0.0
+    - - -> ESPressio Serializable >= 0.10.1 < 1.0.0
 ```
 
-Command supplies the transport-neutral typed Command registry, parsing, validation, invocation, help/completion metadata, scoped command registration, and Observable registry lifecycle used by Serial's Command integrations.
+EventMonitor 0.5.1 specifically uses Serializable 0.10.1's bounded,
+allocation-free ESPB traversal API for structured diagnostics.
 
-### SecurityMonitor
-
-`SecurityMonitor` consumes:
+## Current coordinated ecosystem
 
 ```text
-ESPressio Security >= 0.2.0 < 1.0.0
+FOUNDATIONAL
+├── Observable 3.0.1
+├── Serializable 0.10.1
+├── Units 0.2.2
+├── Security 0.2.0
+└── Command 0.3.0
+
+RUNTIME
+└── Timing 2.2.3
+    ├── Units >= 0.2.2 < 1.0.0
+    └── Observable >= 3.0.1 < 4.0.0
+
+EXECUTION
+└── Threads 3.1.3
+    ├── Timing >= 2.2.3 < 3.0.0
+    └── Observable >= 3.0.1 < 4.0.0
+
+TRANSPORT / INTEGRATION
+├── Sockets 0.5.0
+└── ESP-Now 0.5.1
+
+EVENT
+└── Event 5.8.1
+    ├── Threads >= 3.1.3 < 4.0.0
+    ├── Timing >= 2.2.3 < 3.0.0
+    ├── Observable >= 3.0.1 < 4.0.0
+    └── Serializable >= 0.10.1 < 1.0.0 [optional]
+
+DIAGNOSTICS / OPERATOR
+└── Serial 0.5.1
 ```
 
-Security supplies the Observable configuration, secure-session, replay-protection, and failure lifecycle observed directly by the monitor.
+## Dependency-direction rule
 
-### Socket monitors
+Serial is deliberately a terminal/downstream integration layer. It may observe
+or operate against Command, Security, Sockets, ESP-Now, Timing, Threads, Event,
+and Serializable, but none of those libraries should acquire a Serial
+dependency.
 
-`SocketWorkerMonitor` consumes:
+The wider ecosystem should follow the same rule: dependency edges cascade
+downstream and integration code belongs with the component that introduces the
+additional dependency.
+
+### Known circular optional relationships
+
+Two existing Event bridge placements violate that preferred direction:
 
 ```text
-ESPressio Sockets >= 0.5.0 < 1.0.0
+Sockets - - -> Event
+    concrete socket Event transports
+
+Event - - -> Sockets
+    SocketWorkerEventBridge
+    SocketSecuritySessionEventBridge
 ```
 
-`SocketSecuritySessionMonitor` consumes:
+and:
 
 ```text
-ESPressio Sockets >= 0.5.0 < 1.0.0
-ESPressio Security >= 0.2.0 < 1.0.0
+ESP-Now - - -> Event
+    ESPNowEventTransport
+
+Event - - -> ESP-Now
+    ESPNowTransportEventBridge
 ```
 
-Sockets supplies the Observable socket worker and secure-session lifecycle contracts. Security is only relevant to the secure-session integration.
+The optimal resolution is to keep Event transport-neutral and relocate the
+transport-specific Observer-to-Event bridges downstream into the corresponding
+Sockets/ESP-Now Event integration, or into dedicated integration packages.
 
-### ESPNowTransportMonitor
+Generic Event bridges for upstream libraries that do not themselves consume
+Event—such as Timing, Threads, Command, and Security—do not create this cycle.
 
-`ESPNowTransportMonitor` consumes:
+## Why ESP-Now is not pinned to Event 5.8.1
 
-```text
-ESPressio ESP-Now >= 0.5.0 < 1.0.0
-```
+ESP-Now 0.5.1's **required** dependency refresh is Timing 2.2.3. Its Event
+transport is optional and can consume a compatible Event 5.x release. Requiring
+ESP-Now 0.5.1 to consume Event 5.8.1 while Event also contains an ESP-Now bridge
+would strengthen the reciprocal edge and produce unnecessary release churn.
 
-ESP-Now supplies the Observable transport, peer, and send lifecycle contract.
-
-### EventMonitor and EventConsole
-
-`EventMonitor` consumes:
-
-```text
-ESPressio Event >= 5.8.0 < 6.0.0
-ESPressio Serializable >= 0.10.1 < 1.0.0
-```
-
-Event supplies the Event Transport Transaction Observation stream. Serializable supplies structured payload decoding used for human-readable diagnostic output. Serial 0.5.1 relies on Serializable 0.10.1's bounded `BinaryArchive` decoding and applies additional EventMonitor-specific limits before structured rendering.
-
-The legacy EventConsole initialization path remains supported for compatibility. The recommended Command-backed EventConsole integration consumes:
-
-```text
-ESPressio Command >= 0.3.0 < 1.0.0
-ESPressio Event >= 5.8.0 < 6.0.0
-ESPressio Serializable >= 0.10.1 < 1.0.0
-```
-
-Command supplies the shared `event`/`events` command tree and scoped registration lifetime. Event supplies runtime Serializable Event discovery, descriptors, construction and dispatch. Serializable supplies `JsonArchive`, validation diagnostics, and bounded BinaryArchive decoding for Event monitoring.
-
-The external ArduinoJson dependency is required only by the optional Serializable `JsonArchive`; it is outside this ESPressio-to-ESPressio dependency chart.
-
-### Timing and Threads monitors
-
-`SystemClockMonitor` optionally consumes:
-
-```text
-ESPressio Timing >= 2.2.2 < 3.0.0
-```
-
-`ThreadMonitor` optionally consumes:
-
-```text
-ESPressio Threads >= 3.1.2 < 4.0.0
-```
-
-### Event bridges versus Serial monitors
-
-The 0.5.x Observable monitors subscribe directly to the originating subsystem. They do not require ESPressio Event.
-
-ESPressio Event 5.8.0 separately supplies optional Event bridges for Command, Security, Sockets, and ESP-Now when asynchronous Event conversion is desired. Serial diagnostics therefore remain usable without introducing Event as an intermediary.
-
-## Current ecosystem relationships
-
-- Observable 3.0.1 has no mandatory ESPressio dependencies.
-- Serializable 0.10.1 has no mandatory ESPressio dependencies.
-- Units 0.2.1 optionally consumes Serializable for Serializable Unit counterparts.
-- Timing 2.2.2 requires Units and Observable.
-- Threads 3.1.2 requires Timing and Observable.
-- Security 0.2.0 requires Observable; Event conversion is opt-in downstream through Event 5.8.0.
-- Command 0.3.0 requires Observable; Event conversion is opt-in downstream through Event 5.8.0.
-- Sockets 0.5.0 consumes Observable for lifecycle observation and optionally integrates Command and Security.
-- ESP-Now 0.5.0 requires Timing and Observable and optionally integrates Command, Security, and Event transport functionality.
-- Event 5.8.0 requires Threads, Timing, and Observable and optionally bridges Security, Command, Sockets, and ESP-Now observer contracts.
-- Serial 0.5.1 has no mandatory ESPressio dependencies; Command, Security, Sockets, ESP-Now, Event, Serializable, Timing, and Threads integrations are all opt-in.
-
-Applications using only the core ESPressio Serial layer acquire none of these optional ESPressio dependencies.
+Serial is different: Serial sits downstream of both and therefore validates its
+Event integration against Event 5.8.1 and its ESP-Now monitor against ESP-Now
+0.5.1.
