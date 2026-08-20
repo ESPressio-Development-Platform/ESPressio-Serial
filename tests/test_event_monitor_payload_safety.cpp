@@ -1,12 +1,24 @@
 #include <cassert>
 #include <cstdint>
 #include <random>
+#include <string>
 #include <vector>
 
+#include <Arduino.h>
 #include <ESPressio_BinaryArchive.hpp>
 #include <event/ESPressio_EventMonitorPayloadSafety.hpp>
 
 using namespace ESPressio;
+
+class BufferPrint final : public Print {
+public:
+    std::string Data;
+
+    std::size_t write(uint8_t value) override {
+        Data.push_back(static_cast<char>(value));
+        return 1;
+    }
+};
 
 static void AppendU16(std::vector<uint8_t>& data, uint16_t value) {
     data.push_back(static_cast<uint8_t>(value & 0xffu));
@@ -43,10 +55,36 @@ int main() {
         valid.data(), valid.size(), config
     ));
 
+    // Structured output is rendered directly from ESPB bytes and does not need
+    // a second SerializationNode tree.
+    {
+        BufferPrint output;
+        assert(Serial::PrintStructuredEventPayload(
+            output,
+            valid.data(),
+            valid.size(),
+            config
+        ));
+        assert(output.Data.find("\"value\"") != std::string::npos);
+        assert(output.Data.find("42") != std::string::npos);
+    }
+
     const auto deep = DeepPayload(16);
     assert(!Serial::ValidateStructuredEventPayload(
         deep.data(), deep.size(), config
     ));
+    {
+        BufferPrint output;
+        assert(!Serial::PrintStructuredEventPayload(
+            output,
+            deep.data(),
+            deep.size(),
+            config
+        ));
+        // Validation runs before presentation, so rejected input never emits a
+        // half-rendered structured payload.
+        assert(output.Data.empty());
+    }
 
     const std::vector<uint8_t> truncated = {
         'E', 'S', 'P', 'B', 2u,
@@ -57,18 +95,18 @@ int main() {
         truncated.data(), truncated.size(), config
     ));
 
-    // Stress the diagnostic guard with deterministic arbitrary byte sequences.
-    // The contract is not that random data becomes valid; it is that validation
-    // remains bounded and never destabilizes the caller.
+    // Stress the allocation-free diagnostic guard with deterministic arbitrary
+    // byte sequences. The contract is bounded rejection without constructing
+    // tree state or destabilizing the caller.
     std::mt19937 rng(0x45564D4Fu);
+    std::vector<uint8_t> bytes(512);
     for (unsigned iteration = 0; iteration < 5000; ++iteration) {
-        const std::size_t size = 1 + (rng() % 512);
-        std::vector<uint8_t> bytes(size);
-        for (auto& byte : bytes) {
-            byte = static_cast<uint8_t>(rng());
+        const std::size_t size = 1 + (rng() % bytes.size());
+        for (std::size_t index = 0; index < size; ++index) {
+            bytes[index] = static_cast<uint8_t>(rng());
         }
         (void)Serial::ValidateStructuredEventPayload(
-            bytes.data(), bytes.size(), config
+            bytes.data(), size, config
         );
     }
 
