@@ -181,6 +181,10 @@ public:
             // Diagnostics must never make an invalid/unreasonable payload
             // fatal to the application. Preserve visibility with a bounded
             // hex fallback instead of attempting structured tree rendering.
+            _output->println(
+                "[ESPressio Event] structured payload rejected; using bounded hex fallback"
+            );
+
             effectiveConfig.PayloadFormat =
                 EventMonitorPayloadFormat::Hex;
         }
