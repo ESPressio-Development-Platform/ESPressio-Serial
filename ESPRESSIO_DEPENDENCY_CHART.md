@@ -1,8 +1,8 @@
-# ESPressio Dependency Chart — Serial 0.5.1
+# ESPressio Dependency Chart — Serial 0.5.2
 
 ![ESPressio Library Dependency Chart](ESPRESSIO_DEPENDENCY_CHART.png)
 
-## ESPressio Serial 0.5.1
+## ESPressio Serial 0.5.2
 
 The Serial core and generic `Console` have no mandatory ESPressio dependencies.
 All ESPressio integrations remain opt-in.
@@ -37,9 +37,10 @@ EventMonitor / EventConsole
     - - -> ESPressio Serializable >= 0.10.2 < 1.0.0
 ```
 
-EventMonitor 0.5.1 uses Serializable 0.10.2's bounded, allocation-free ESPB
-traversal API for structured diagnostics. Serializable 0.10.2 also contains the
-strict-build warning correction required by Serial's `-Werror` host validation.
+EventMonitor 0.5.2 retains Serializable 0.10.2's bounded, allocation-free ESPB
+traversal API for structured diagnostics. Serial 0.5.2 additionally reserves
+the generic Console's configured bounded input capacity during initialization,
+removing avoidable line-buffer growth allocations from `Console::Poll()`.
 
 ## Current coordinated ecosystem
 
@@ -73,7 +74,7 @@ EVENT
     └── Serializable >= 0.10.2 < 1.0.0 [optional]
 
 DIAGNOSTICS / OPERATOR
-└── Serial 0.5.1
+└── Serial 0.5.2
 ```
 
 ## Dependency-direction rule
