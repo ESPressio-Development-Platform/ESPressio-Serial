@@ -53,23 +53,23 @@ jobs:
           repository: Flowduino/ESPressio-Observable
           ref: 3.0.1
           path: project/dependencies/ESPressio-Observable
-      - name: Checkout ESPressio Units 0.2.3 candidate
+      - name: Checkout ESPressio Units 0.2.3
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Units
-          ref: feature/4-serializable-0.10.2-dependency-refresh
+          ref: 0.2.3
           path: project/dependencies/ESPressio-Units
-      - name: Checkout ESPressio Timing 2.2.4 candidate
+      - name: Checkout ESPressio Timing 2.2.4
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Timing
-          ref: feature/7-units-0.2.3-dependency-refresh
+          ref: 2.2.4
           path: project/dependencies/ESPressio-Timing
-      - name: Checkout ESPressio Threads 3.1.4 candidate
+      - name: Checkout ESPressio Threads 3.1.4
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Threads
-          ref: feature/47-timing-2.2.4-dependency-refresh
+          ref: 3.1.4
           path: project/dependencies/ESPressio-Threads
       - name: Checkout ESPressio Serializable 0.10.2
         uses: actions/checkout@v4
@@ -77,11 +77,11 @@ jobs:
           repository: Flowduino/ESPressio-Serializable
           ref: 0.10.2
           path: project/dependencies/ESPressio-Serializable
-      - name: Checkout ESPressio Event 5.8.2 candidate
+      - name: Checkout ESPressio Event 5.8.2
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Event
-          ref: feature/21-serializable-0.10.2-cascade-refresh
+          ref: 5.8.2
           path: project/dependencies/ESPressio-Event
       - name: Checkout ESPressio Command 0.3.0
         uses: actions/checkout@v4
@@ -101,11 +101,11 @@ jobs:
           repository: Flowduino/ESPressio-Sockets
           ref: 0.5.0
           path: project/dependencies/ESPressio-Sockets
-      - name: Checkout ESPressio ESP-Now 0.5.2 candidate
+      - name: Checkout ESPressio ESP-Now 0.5.2
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-ESP-Now
-          ref: feature/12-timing-2.2.4-dependency-refresh
+          ref: 0.5.2
           path: project/dependencies/ESPressio-ESP-Now
       - uses: actions/setup-python@v5
         with:
