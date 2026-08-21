@@ -2,11 +2,13 @@
 
 Serial and console-oriented components for the Flowduino ESPressio Development Platform.
 
-Version 0.5.1 hardens the opt-in Event Monitor so structured Event Transport diagnostics are rendered directly from bounded ESPB bytes without constructing a second heap-backed `SerializationNode` tree. It retains the Observable-backed monitors introduced in 0.5.0 while preserving the dependency-free Serial core and existing Console/Event integrations.
+Version 0.5.2 hardens the generic Console under heap pressure by reserving its configured bounded input capacity during initialization, so normal line polling no longer grows the backing `std::string` incrementally. It retains the EventMonitor safety work from 0.5.1 and the Observable-backed monitors introduced in 0.5.0 while preserving the dependency-free Serial core.
 
-## Current Version — 0.5.1
+## Current Version — 0.5.2
 
-Version **0.5.1** fixes the structured EventMonitor crash path reproduced on ESP32 under low-memory conditions. Structured diagnostics now use ESPressio Serializable 0.10.2's allocation-free BinaryArchive traversal API with explicit depth, aggregate-node, collection, name, and string limits. Invalid or outside-limit payloads fall back to bounded hexadecimal output rather than becoming fatal diagnostic work.
+Version **0.5.2** fixes a low-memory failure path reproduced on ESP32 where `Console::Poll()` could reach `std::terminate()` when `std::string::push_back()` needed to grow the input buffer after the system was already under severe heap pressure. `Console::Initialize()` now prepares the configuration and reserves `ConsoleConfig::MaximumLineLength` before publishing the console as initialized. If that bounded capacity cannot be reserved, initialization returns `false` cleanly.
+
+The EventMonitor structured-payload hardening from 0.5.1 remains unchanged: structured diagnostics use ESPressio Serializable 0.10.2's allocation-free BinaryArchive traversal API with explicit depth, aggregate-node, collection, name, and string limits. Invalid or outside-limit payloads fall back to bounded hexadecimal output rather than becoming fatal diagnostic work.
 
 The Observable-backed monitor integrations introduced in 0.5.0 remain available unchanged:
 
@@ -34,7 +36,7 @@ These monitors subscribe directly to the originating library's Observable contra
 
 Historical documentation for earlier release generations remains below where useful.
 
-Current coordinated dependency baselines for the 0.5.1 release are Units 0.2.3, Timing 2.2.4, Threads 3.1.4, ESP-Now 0.5.2, Event 5.8.2, and Serializable 0.10.2. Command 0.3.0, Security 0.2.0, and Sockets 0.5.0 remain the current optional integration baselines.
+Current coordinated dependency baselines for the 0.5.2 release are Units 0.2.3, Timing 2.2.4, Threads 3.1.4, ESP-Now 0.5.2, Event 5.8.2, and Serializable 0.10.2. Command 0.3.0, Security 0.2.0, and Sockets 0.5.0 remain the current optional integration baselines.
 
 ## ESPressio Development Platform
 
@@ -163,11 +165,14 @@ void setup() {
     ESPressio::Serial::ConsoleConfig config;
     config.Prompt = "espressio> ";
 
-    console.Initialize(
+    if (!console.Initialize(
         ::Serial,
         ::Serial,
         config
-    );
+    )) {
+        // The bounded input buffer could not be reserved.
+        return;
+    }
 
     console.RegisterCommand(
         "hello",
@@ -193,7 +198,9 @@ The line buffer is bounded through:
 ConsoleConfig::MaximumLineLength
 ```
 
-and the console supports:
+Beginning with 0.5.2, that bounded capacity is reserved during `Initialize()`. A successful initialization therefore guarantees that ordinary input up to `MaximumLineLength` does not need to grow the backing line buffer while `Poll()` is running. If the reservation cannot be satisfied, initialization returns `false` and the console remains uninitialized.
+
+The console supports:
 
 ```text
 command registration
@@ -520,6 +527,9 @@ argument preservation
 multiple interactive line interceptors
 interceptor removal
 Stream polling
+bounded Console input capacity reservation
+capacity retention across polling and line clearing
+over-length discard handling without buffer growth
 runtime Event listing
 Event schema description
 allow-list enforcement
@@ -880,7 +890,7 @@ config.MaximumHexPayloadBytes
 
 ESPressio Event Transport serializes Event payloads using ESPressio Serializable's BinaryArchive ESPB v2 representation.
 
-Beginning with Serial 0.5.1, EventMonitor does **not** decode that payload into a second `SerializationNode` tree merely for presentation. Instead, it uses Serializable 0.10.1's `TraverseBinaryArchive()` API to validate and stream the existing ESPB bytes directly to the selected Arduino `Print` destination.
+Beginning with Serial 0.5.1, EventMonitor does **not** decode that payload into a second `SerializationNode` tree merely for presentation. Instead, it uses Serializable 0.10.2's `TraverseBinaryArchive()` API to validate and stream the existing ESPB bytes directly to the selected Arduino `Print` destination.
 
 This keeps human-readable structured diagnostics independent of the concrete C++ Event type and avoids ArduinoJson, while removing duplicate payload-tree allocations from the synchronous Event Transport observer path.
 
@@ -981,16 +991,16 @@ A project using only the core Serial library:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.5.1
+    flowduino/ESPressio-Serial@^0.5.2
 ```
 
 An application using Event Monitor requires:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.5.1
-    flowduino/ESPressio-Event@^5.8.1
-    flowduino/ESPressio-Serializable@^0.10.1
+    flowduino/ESPressio-Serial@^0.5.2
+    flowduino/ESPressio-Event@^5.8.2
+    flowduino/ESPressio-Serializable@^0.10.2
 ```
 
 The Event/Serializable dependencies are intentionally not declared as mandatory package dependencies of ESPressio Serial because they are required only by the opt-in Event Monitor feature.
@@ -1004,16 +1014,16 @@ The generic console requires only ESPressio Serial:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.5.1
+    flowduino/ESPressio-Serial@^0.5.2
 ```
 
 The Event Console additionally requires the runtime Event and JSON stacks:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.5.1
-    flowduino/ESPressio-Event@^5.8.1
-    flowduino/ESPressio-Serializable@^0.10.1
+    flowduino/ESPressio-Serial@^0.5.2
+    flowduino/ESPressio-Event@^5.8.2
+    flowduino/ESPressio-Serializable@^0.10.2
     bblanchon/ArduinoJson
 ```
 
