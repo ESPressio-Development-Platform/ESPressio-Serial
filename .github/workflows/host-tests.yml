@@ -2,7 +2,7 @@ name: Host Tests
 
 on:
   push:
-    branches: [main, bugfix/7-event-monitor-structured-payload-safety, feature/8-dependency-refresh-0.5.1]
+    branches: [main, bugfix/10-console-poll-heap-pressure]
   pull_request:
 
 jobs:
@@ -144,6 +144,7 @@ jobs:
           cat > project/compile/src/main.cpp <<'EOF'
           #include <Arduino.h>
           #include <WiFi.h>
+          #include <ESPressio_Console.hpp>
           #include <ESPressio_CommandMonitor.hpp>
           #include <ESPressio_SecurityMonitor.hpp>
           #include <ESPressio_SocketWorkerMonitor.hpp>
@@ -152,8 +153,15 @@ jobs:
           #include <ESPressio_EventMonitor.hpp>
           #include <event/ESPressio_EventMonitorPayloadSafety.hpp>
 
-          void setup() {}
+          ESPressio::Serial::Console console;
+
+          void setup() {
+              ESPressio::Serial::ConsoleConfig config;
+              config.ShowPrompt = false;
+              config.MaximumLineLength = 128;
+              console.Initialize(Serial, Serial, config);
+          }
           void loop() {}
           EOF
-      - name: Compile ESP32 Observable and Event monitors
+      - name: Compile ESP32 Console and Observable/Event monitors
         run: pio run -d project/compile
