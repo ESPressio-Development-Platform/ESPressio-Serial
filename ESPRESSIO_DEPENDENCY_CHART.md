@@ -24,52 +24,53 @@ SocketSecuritySessionMonitor
     - - -> ESPressio Security >= 0.2.0 < 1.0.0
 
 ESPNowTransportMonitor
-    - - -> ESPressio ESP-Now >= 0.5.1 < 1.0.0
+    - - -> ESPressio ESP-Now >= 0.5.2 < 1.0.0
 
 SystemClockMonitor
-    - - -> ESPressio Timing >= 2.2.3 < 3.0.0
+    - - -> ESPressio Timing >= 2.2.4 < 3.0.0
 
 ThreadMonitor
-    - - -> ESPressio Threads >= 3.1.3 < 4.0.0
+    - - -> ESPressio Threads >= 3.1.4 < 4.0.0
 
 EventMonitor / EventConsole
-    - - -> ESPressio Event >= 5.8.1 < 6.0.0
-    - - -> ESPressio Serializable >= 0.10.1 < 1.0.0
+    - - -> ESPressio Event >= 5.8.2 < 6.0.0
+    - - -> ESPressio Serializable >= 0.10.2 < 1.0.0
 ```
 
-EventMonitor 0.5.1 specifically uses Serializable 0.10.1's bounded,
-allocation-free ESPB traversal API for structured diagnostics.
+EventMonitor 0.5.1 uses Serializable 0.10.2's bounded, allocation-free ESPB
+traversal API for structured diagnostics. Serializable 0.10.2 also contains the
+strict-build warning correction required by Serial's `-Werror` host validation.
 
 ## Current coordinated ecosystem
 
 ```text
 FOUNDATIONAL
 ├── Observable 3.0.1
-├── Serializable 0.10.1
-├── Units 0.2.2
+├── Serializable 0.10.2
+├── Units 0.2.3
 ├── Security 0.2.0
 └── Command 0.3.0
 
 RUNTIME
-└── Timing 2.2.3
-    ├── Units >= 0.2.2 < 1.0.0
+└── Timing 2.2.4
+    ├── Units >= 0.2.3 < 1.0.0
     └── Observable >= 3.0.1 < 4.0.0
 
 EXECUTION
-└── Threads 3.1.3
-    ├── Timing >= 2.2.3 < 3.0.0
+└── Threads 3.1.4
+    ├── Timing >= 2.2.4 < 3.0.0
     └── Observable >= 3.0.1 < 4.0.0
 
 TRANSPORT / INTEGRATION
 ├── Sockets 0.5.0
-└── ESP-Now 0.5.1
+└── ESP-Now 0.5.2
 
 EVENT
-└── Event 5.8.1
-    ├── Threads >= 3.1.3 < 4.0.0
-    ├── Timing >= 2.2.3 < 3.0.0
+└── Event 5.8.2
+    ├── Threads >= 3.1.4 < 4.0.0
+    ├── Timing >= 2.2.4 < 3.0.0
     ├── Observable >= 3.0.1 < 4.0.0
-    └── Serializable >= 0.10.1 < 1.0.0 [optional]
+    └── Serializable >= 0.10.2 < 1.0.0 [optional]
 
 DIAGNOSTICS / OPERATOR
 └── Serial 0.5.1
@@ -116,13 +117,13 @@ Sockets/ESP-Now Event integration, or into dedicated integration packages.
 Generic Event bridges for upstream libraries that do not themselves consume
 Event—such as Timing, Threads, Command, and Security—do not create this cycle.
 
-## Why ESP-Now is not pinned to Event 5.8.1
+## Why ESP-Now is not pinned to Event 5.8.2
 
-ESP-Now 0.5.1's **required** dependency refresh is Timing 2.2.3. Its Event
+ESP-Now 0.5.2's **required** dependency refresh is Timing 2.2.4. Its Event
 transport is optional and can consume a compatible Event 5.x release. Requiring
-ESP-Now 0.5.1 to consume Event 5.8.1 while Event also contains an ESP-Now bridge
+ESP-Now 0.5.2 to consume Event 5.8.2 while Event also contains an ESP-Now bridge
 would strengthen the reciprocal edge and produce unnecessary release churn.
 
 Serial is different: Serial sits downstream of both and therefore validates its
-Event integration against Event 5.8.1 and its ESP-Now monitor against ESP-Now
-0.5.1.
+Event integration against Event 5.8.2 and its ESP-Now monitor against ESP-Now
+0.5.2.
