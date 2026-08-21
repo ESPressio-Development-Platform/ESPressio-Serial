@@ -78,11 +78,11 @@ jobs:
           repository: Flowduino/ESPressio-Serializable
           ref: 0.10.2
           path: project/dependencies/ESPressio-Serializable
-      - name: Checkout ESPressio Event 5.8.2
+      - name: Checkout ESPressio Event 5.8.4
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Event
-          ref: 5.8.2
+          ref: 5.8.4
           path: project/dependencies/ESPressio-Event
       - name: Checkout ESPressio Command 0.3.0
         uses: actions/checkout@v4
@@ -102,11 +102,11 @@ jobs:
           repository: Flowduino/ESPressio-Sockets
           ref: 0.5.0
           path: project/dependencies/ESPressio-Sockets
-      - name: Checkout ESPressio ESP-Now 0.5.2
+      - name: Checkout ESPressio ESP-Now 0.5.3
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-ESP-Now
-          ref: 0.5.2
+          ref: 0.5.3
           path: project/dependencies/ESPressio-ESP-Now
       - uses: actions/setup-python@v5
         with:
