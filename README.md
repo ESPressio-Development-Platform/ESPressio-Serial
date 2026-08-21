@@ -6,7 +6,7 @@ Version 0.5.1 hardens the opt-in Event Monitor so structured Event Transport dia
 
 ## Current Version — 0.5.1
 
-Version **0.5.1** fixes the structured EventMonitor crash path reproduced on ESP32 under low-memory conditions. Structured diagnostics now use ESPressio Serializable 0.10.1's allocation-free BinaryArchive traversal API with explicit depth, aggregate-node, collection, name, and string limits. Invalid or outside-limit payloads fall back to bounded hexadecimal output rather than becoming fatal diagnostic work.
+Version **0.5.1** fixes the structured EventMonitor crash path reproduced on ESP32 under low-memory conditions. Structured diagnostics now use ESPressio Serializable 0.10.2's allocation-free BinaryArchive traversal API with explicit depth, aggregate-node, collection, name, and string limits. Invalid or outside-limit payloads fall back to bounded hexadecimal output rather than becoming fatal diagnostic work.
 
 The Observable-backed monitor integrations introduced in 0.5.0 remain available unchanged:
 
@@ -25,16 +25,16 @@ SocketSecuritySessionMonitor
     - - -> ESPressio Security >= 0.2.0 < 1.0.0
 
 ESPNowTransportMonitor
-    - - -> ESPressio ESP-Now >= 0.5.1 < 1.0.0
+    - - -> ESPressio ESP-Now >= 0.5.2 < 1.0.0
 ```
 
 `DiagnosticMonitor` can additionally compose `CommandMonitor` and `ESPNowTransportMonitor` when those dependencies are present. Security and Socket monitors remain instance-oriented because the application must choose the specific `TransportSecurity`, `SocketWorker`, or `SocketSecuritySession` object to observe.
 
-These monitors subscribe directly to the originating library's Observable contract. They do not invent parallel Serial lifecycle semantics and do not require ESPressio Event. Event-backed observation remains a separate opt-in integration in ESPressio Event 5.8.1.
+These monitors subscribe directly to the originating library's Observable contract. They do not invent parallel Serial lifecycle semantics and do not require ESPressio Event. Event-backed observation remains a separate opt-in integration in ESPressio Event 5.8.2.
 
 Historical documentation for earlier release generations remains below where useful.
 
-Current coordinated dependency baselines for the 0.5.1 release are Units 0.2.2, Timing 2.2.3, Threads 3.1.3, ESP-Now 0.5.1, Event 5.8.1, and Serializable 0.10.1. Command 0.3.0, Security 0.2.0, and Sockets 0.5.0 remain the current optional integration baselines.
+Current coordinated dependency baselines for the 0.5.1 release are Units 0.2.3, Timing 2.2.4, Threads 3.1.4, ESP-Now 0.5.2, Event 5.8.2, and Serializable 0.10.2. Command 0.3.0, Security 0.2.0, and Sockets 0.5.0 remain the current optional integration baselines.
 
 ## ESPressio Development Platform
 
@@ -77,8 +77,8 @@ The **core ESPressio Serial library has no required ESPressio library dependenci
 The Event Monitor is deliberately opt-in and requires:
 
 ```text
-ESPressio Event >= 5.8.1 < 6.0.0
-ESPressio Serializable >= 0.10.1 < 1.0.0
+ESPressio Event >= 5.8.2 < 6.0.0
+ESPressio Serializable >= 0.10.2 < 1.0.0
 ```
 
 The additional opt-in monitoring dependencies for the 0.5.x line are listed above. Historical sections below retain older release-specific baselines where those versions are part of the documented history.
