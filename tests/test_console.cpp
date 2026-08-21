@@ -56,6 +56,7 @@ int main() {
 
     ConsoleConfig config;
     config.ShowPrompt = false;
+    config.MaximumLineLength = 128;
 
     assert(
         console.Initialize(
@@ -63,6 +64,14 @@ int main() {
             stream,
             config
         )
+    );
+
+    const auto reservedCapacity =
+        console.__GetInputBufferCapacityForTesting();
+
+    assert(
+        reservedCapacity >=
+        config.MaximumLineLength
     );
 
     bool called = false;
@@ -145,6 +154,48 @@ int main() {
 
     assert(called);
     assert(lastArguments == "from poll");
+    assert(
+        console.__GetInputBufferCapacityForTesting() ==
+        reservedCapacity
+    );
+
+    stream.Input =
+        std::string(
+            config.MaximumLineLength,
+            'x'
+        ) +
+        "\n";
+
+    stream.ReadOffset = 0;
+    console.Poll();
+
+    assert(
+        console.__GetInputBufferCapacityForTesting() ==
+        reservedCapacity
+    );
+
+    stream.Input =
+        std::string(
+            config.MaximumLineLength + 1,
+            'y'
+        ) +
+        "\n";
+
+    stream.ReadOffset = 0;
+    stream.Output.clear();
+    console.Poll();
+
+    assert(
+        stream.Output.find(
+            "Input rejected: line exceeds configured maximum length."
+        ) !=
+        std::string::npos
+    );
+
+    assert(
+        console.__GetInputBufferCapacityForTesting() ==
+        reservedCapacity
+    );
 
     return 0;
 }
