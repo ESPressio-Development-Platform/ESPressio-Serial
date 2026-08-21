@@ -1,3 +1,31 @@
+## 0.5.1
+
+### Fixed
+
+- Replaced EventMonitor's tree-building `BinaryArchive::Load()` diagnostic path with bounded, allocation-free ESPB traversal from ESPressio Serializable 0.10.2, preventing valid payload diagnostics from requiring a second heap-backed `SerializationNode` tree.
+- Hardened structured `EventMonitor` payload diagnostics so malformed, truncated, excessively nested, or otherwise unreasonable Event Transport payloads are rejected under monitor-specific decode limits.
+- Added fail-safe fallback from `Structured` to bounded `Hex` output whenever a payload fails structured validation or exceeds the configured monitor limits.
+- Updated Event Monitor's optional Serializable baseline to ESPressio Serializable >= 0.10.2 < 1.0.0, consuming the bounded/allocation-free BinaryArchive facilities introduced for Flowduino/ESPressio-Serializable#2.
+
+### Added
+
+- Added `MaximumStructuredNodes` to `EventMonitorConfig` alongside the existing collection, string, and nesting limits.
+- Added deterministic malformed/deep/random payload regression and stress coverage for the EventMonitor structured-payload validation path.
+- Added ESP32 compile validation for `EventMonitor` against the coordinated dependency-refresh candidates: Units 0.2.3, Timing 2.2.4, Threads 3.1.4, ESP-Now 0.5.2, Event 5.8.2, and released Serializable 0.10.2.
+
+### Changed
+
+- Raised the current optional Event integration baseline to ESPressio Event >= 5.8.2 < 6.0.0.
+- Raised the current optional ESP-Now monitor baseline to ESPressio ESP-Now >= 0.5.2 < 1.0.0.
+- Updated current documentation and CI to consume the completed Serializable 0.10.2 dependency cascade rather than intermediate bug-fix commits.
+- Serializable 0.10.2 also resolves the strict-build `-Wmisleading-indentation` warning exposed by Serial's warnings-as-errors host validation.
+
+### Compatibility
+
+- Core Serial remains dependency-free.
+- EventMonitor remains opt-in.
+- Existing structured output remains JSON-like and source-compatible for payloads that validate successfully.
+
 ## 0.5.0
 
 - Added opt-in `CommandMonitor` for ESPressio Command 0.3.x registry lifecycle observation.

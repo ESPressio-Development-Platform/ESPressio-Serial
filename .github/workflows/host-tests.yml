@@ -2,7 +2,7 @@ name: Host Tests
 
 on:
   push:
-    branches: [main, feature/observable-callback-coverage]
+    branches: [main, bugfix/7-event-monitor-structured-payload-safety, feature/8-dependency-refresh-0.5.1]
   pull_request:
 
 jobs:
@@ -23,11 +23,18 @@ jobs:
           repository: Flowduino/ESPressio-Observable
           ref: 3.0.1
           path: deps/ESPressio-Observable
+      - name: Checkout ESPressio Serializable 0.10.2
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Serializable
+          ref: 0.10.2
+          path: deps/ESPressio-Serializable
       - name: Configure
         run: >-
           cmake -S tests -B build
           -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
           -DESPRESSIO_OBSERVABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Observable/src"
+          -DESPRESSIO_SERIALIZABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Serializable/src"
       - name: Build
         run: cmake --build build --parallel
       - name: Test
@@ -46,18 +53,36 @@ jobs:
           repository: Flowduino/ESPressio-Observable
           ref: 3.0.1
           path: project/dependencies/ESPressio-Observable
-      - name: Checkout ESPressio Units 0.2.1
+      - name: Checkout ESPressio Units 0.2.3
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Units
-          ref: 0.2.1
+          ref: 0.2.3
           path: project/dependencies/ESPressio-Units
-      - name: Checkout ESPressio Timing 2.2.2
+      - name: Checkout ESPressio Timing 2.2.4
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Timing
-          ref: 2.2.2
+          ref: 2.2.4
           path: project/dependencies/ESPressio-Timing
+      - name: Checkout ESPressio Threads 3.1.4
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Threads
+          ref: 3.1.4
+          path: project/dependencies/ESPressio-Threads
+      - name: Checkout ESPressio Serializable 0.10.2
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Serializable
+          ref: 0.10.2
+          path: project/dependencies/ESPressio-Serializable
+      - name: Checkout ESPressio Event 5.8.2
+        uses: actions/checkout@v4
+        with:
+          repository: Flowduino/ESPressio-Event
+          ref: 5.8.2
+          path: project/dependencies/ESPressio-Event
       - name: Checkout ESPressio Command 0.3.0
         uses: actions/checkout@v4
         with:
@@ -76,11 +101,11 @@ jobs:
           repository: Flowduino/ESPressio-Sockets
           ref: 0.5.0
           path: project/dependencies/ESPressio-Sockets
-      - name: Checkout ESPressio ESP-Now 0.5.0
+      - name: Checkout ESPressio ESP-Now 0.5.2
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-ESP-Now
-          ref: 0.5.0
+          ref: 0.5.2
           path: project/dependencies/ESPressio-ESP-Now
       - uses: actions/setup-python@v5
         with:
@@ -111,6 +136,9 @@ jobs:
               ../dependencies/ESPressio-Observable
               ../dependencies/ESPressio-Units
               ../dependencies/ESPressio-Timing
+              ../dependencies/ESPressio-Threads
+              ../dependencies/ESPressio-Serializable
+              ../dependencies/ESPressio-Event
               ../ESPressio-Serial
           EOF
           cat > project/compile/src/main.cpp <<'EOF'
@@ -121,9 +149,11 @@ jobs:
           #include <ESPressio_SocketWorkerMonitor.hpp>
           #include <ESPressio_SocketSecuritySessionMonitor.hpp>
           #include <ESPressio_ESPNowTransportMonitor.hpp>
+          #include <ESPressio_EventMonitor.hpp>
+          #include <event/ESPressio_EventMonitorPayloadSafety.hpp>
 
           void setup() {}
           void loop() {}
           EOF
-      - name: Compile ESP32 Observable monitors
+      - name: Compile ESP32 Observable and Event monitors
         run: pio run -d project/compile

@@ -4,8 +4,8 @@
 #error "ESPressio EventMonitor requires ESPressio Event >= 5.6.2 < 6.0.0."
 #endif
 
-#if !__has_include(<ESPressio_BinaryArchive.hpp>)
-#error "ESPressio EventMonitor requires ESPressio Serializable >= 0.9.0 < 1.0.0."
+#if !__has_include(<ESPressio_BinaryArchiveTraversal.hpp>)
+#error "ESPressio EventMonitor requires ESPressio Serializable >= 0.10.1 < 1.0.0."
 #endif
 
 #include <mutex>
@@ -15,6 +15,7 @@
 
 #include "../ESPressio_SerialTypes.hpp"
 #include "ESPressio_EventMonitorFormatter.hpp"
+#include "ESPressio_EventMonitorPayloadSafety.hpp"
 
 namespace ESPressio::Serial {
 
@@ -163,12 +164,59 @@ public:
             return;
         }
 
+        if (
+            _config.PayloadFormat !=
+                EventMonitorPayloadFormat::Structured
+        ) {
+            EventMonitorFormatter::
+                PrintTransaction(
+                    *_output,
+                    transaction,
+                    _config
+                );
+            return;
+        }
+
+        // Print the transaction metadata through the established formatter, but
+        // suppress its legacy tree-building structured payload path. The
+        // payload itself is then traversed directly from ESPB bytes without
+        // constructing a second SerializationNode tree.
+        EventMonitorConfig metadataConfig =
+            _config;
+        metadataConfig.PayloadFormat =
+            EventMonitorPayloadFormat::None;
+
         EventMonitorFormatter::
             PrintTransaction(
                 *_output,
                 transaction,
-                _config
+                metadataConfig
             );
+
+        _output->print("  payload: ");
+
+        if (
+            PrintStructuredEventPayload(
+                *_output,
+                transaction.Payload,
+                transaction.PayloadSize,
+                _config
+            )
+        ) {
+            _output->println();
+            return;
+        }
+
+        _output->print(
+            "<invalid-or-outside-monitor-limits> "
+        );
+        PrintEventPayloadHexFallback(
+            *_output,
+            transaction.Payload,
+            transaction.PayloadSize,
+            _config
+        );
+        _output->println();
     }
 };
 

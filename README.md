@@ -2,13 +2,13 @@
 
 Serial and console-oriented components for the Flowduino ESPressio Development Platform.
 
-Version 0.5.0 expands ESPressio Serial diagnostics with opt-in Observable-backed monitors for ESPressio Command, Security, Sockets, and ESP-Now while preserving the dependency-free Serial core and existing Console/Event integrations.
+Version 0.5.1 hardens the opt-in Event Monitor so structured Event Transport diagnostics are rendered directly from bounded ESPB bytes without constructing a second heap-backed `SerializationNode` tree. It retains the Observable-backed monitors introduced in 0.5.0 while preserving the dependency-free Serial core and existing Console/Event integrations.
 
-## Current Version — 0.5.0
+## Current Version — 0.5.1
 
-Version **0.5.0** extends Serial's diagnostics layer to consume the Observable lifecycle contracts provided by ESPressio Command, Security, Sockets, and ESP-Now.
+Version **0.5.1** fixes the structured EventMonitor crash path reproduced on ESP32 under low-memory conditions. Structured diagnostics now use ESPressio Serializable 0.10.2's allocation-free BinaryArchive traversal API with explicit depth, aggregate-node, collection, name, and string limits. Invalid or outside-limit payloads fall back to bounded hexadecimal output rather than becoming fatal diagnostic work.
 
-Core ESPressio Serial remains free of mandatory ESPressio-library dependencies. The new monitors are selected only when their corresponding upstream headers are available:
+The Observable-backed monitor integrations introduced in 0.5.0 remain available unchanged:
 
 ```text
 CommandMonitor
@@ -25,14 +25,16 @@ SocketSecuritySessionMonitor
     - - -> ESPressio Security >= 0.2.0 < 1.0.0
 
 ESPNowTransportMonitor
-    - - -> ESPressio ESP-Now >= 0.5.0 < 1.0.0
+    - - -> ESPressio ESP-Now >= 0.5.2 < 1.0.0
 ```
 
 `DiagnosticMonitor` can additionally compose `CommandMonitor` and `ESPNowTransportMonitor` when those dependencies are present. Security and Socket monitors remain instance-oriented because the application must choose the specific `TransportSecurity`, `SocketWorker`, or `SocketSecuritySession` object to observe.
 
-These monitors subscribe directly to the originating library's Observable contract. They do not invent parallel Serial lifecycle semantics and do not require ESPressio Event. Event-backed observation remains a separate opt-in integration in ESPressio Event 5.8.0.
+These monitors subscribe directly to the originating library's Observable contract. They do not invent parallel Serial lifecycle semantics and do not require ESPressio Event. Event-backed observation remains a separate opt-in integration in ESPressio Event 5.8.2.
 
 Historical documentation for earlier release generations remains below where useful.
+
+Current coordinated dependency baselines for the 0.5.1 release are Units 0.2.3, Timing 2.2.4, Threads 3.1.4, ESP-Now 0.5.2, Event 5.8.2, and Serializable 0.10.2. Command 0.3.0, Security 0.2.0, and Sockets 0.5.0 remain the current optional integration baselines.
 
 ## ESPressio Development Platform
 
@@ -75,11 +77,11 @@ The **core ESPressio Serial library has no required ESPressio library dependenci
 The Event Monitor is deliberately opt-in and requires:
 
 ```text
-ESPressio Event >= 5.8.0 < 6.0.0
-ESPressio Serializable >= 0.10.0 < 1.0.0
+ESPressio Event >= 5.8.2 < 6.0.0
+ESPressio Serializable >= 0.10.2 < 1.0.0
 ```
 
-The additional opt-in monitoring dependencies for 0.5.0 are listed above. Historical sections below retain older release-specific baselines where those versions are part of the documented history.
+The additional opt-in monitoring dependencies for the 0.5.x line are listed above. Historical sections below retain older release-specific baselines where those versions are part of the documented history.
 
 For the complete ecosystem hierarchy, see:
 
@@ -672,7 +674,7 @@ ThreadMonitor
 
 EventMonitor
     - - -> ESPressio Event >= 5.8.0 < 6.0.0
-    - - -> ESPressio Serializable >= 0.10.0 < 1.0.0
+    - - -> ESPressio Serializable >= 0.10.1 < 1.0.0
 ```
 
 All ESPressio relationships remain opt-in. The 0.5.0 observer monitors add the additional optional relationships documented near the top of this README.
@@ -876,16 +878,13 @@ config.MaximumHexPayloadBytes
 
 `Structured` is the default.
 
-ESPressio Event Transport serializes Event payloads using ESPressio Serializable's `BinaryArchive`.
+ESPressio Event Transport serializes Event payloads using ESPressio Serializable's BinaryArchive ESPB v2 representation.
 
-The monitor decodes that Binary Archive into Serializable's generic `SerializationNode` tree and renders it directly as JSON-like structured text.
+Beginning with Serial 0.5.1, EventMonitor does **not** decode that payload into a second `SerializationNode` tree merely for presentation. Instead, it uses Serializable 0.10.1's `TraverseBinaryArchive()` API to validate and stream the existing ESPB bytes directly to the selected Arduino `Print` destination.
 
-This has two important advantages:
+This keeps human-readable structured diagnostics independent of the concrete C++ Event type and avoids ArduinoJson, while removing duplicate payload-tree allocations from the synchronous Event Transport observer path.
 
-1. the monitor does not need to know the concrete C++ Event type;
-2. it does not require ArduinoJson merely to present human-readable diagnostics.
-
-The monitor is therefore able to inspect arbitrary transported Serializable Event payloads using the schema already encoded in the Binary Archive.
+If the payload is malformed or exceeds the configured diagnostic limits, EventMonitor prints a bounded hexadecimal fallback rather than attempting structured tree construction.
 
 ---
 
@@ -898,12 +897,13 @@ Configuration includes:
 ```cpp
 MaximumCollectionItems
 MaximumStringLength
+MaximumStructuredNodes
 MaximumStructuredDepth
 IndentSpaces
 PrettyStructuredPayload
 ```
 
-These provide deterministic limits when monitoring large or deeply nested Event payloads.
+These limits are applied while validating/traversing ESPB bytes before structured output is emitted. `MaximumStructuredNodes` bounds aggregate payload-tree breadth as well as the existing collection/string/depth controls.
 
 ---
 
@@ -932,11 +932,11 @@ Inbound and outbound monitoring can also be enabled independently.
 
 # Borrowed Event Transport data
 
-ESPressio Event 5.5 transaction snapshots expose borrowed Event/payload references valid only during the Observer callback.
+ESPressio Event transaction snapshots expose borrowed Event/payload references valid only during the Observer callback.
 
 `EventMonitor` consumes those values synchronously and does not retain borrowed transaction pointers after the callback returns.
 
-Structured decoding is therefore performed while the payload is valid.
+Structured traversal is therefore performed while the payload is valid, without copying it into a second tree.
 
 ---
 
@@ -971,7 +971,7 @@ examples/
 
 The example uses a small local `LoopbackEventTransport` so both outbound and inbound transactions can be demonstrated on a single ESP32 without networking or additional hardware.
 
-It defines a Serializable counter Event, transports it through Event 5.5, and renders the Binary payload as structured text.
+It defines a Serializable counter Event, transports it through Event, and renders the Binary payload as structured text.
 
 ---
 
@@ -981,16 +981,16 @@ A project using only the core Serial library:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.5.0
+    flowduino/ESPressio-Serial@^0.5.1
 ```
 
 An application using Event Monitor requires:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.5.0
-    flowduino/ESPressio-Event@^5.8.0
-    flowduino/ESPressio-Serializable@^0.10.0
+    flowduino/ESPressio-Serial@^0.5.1
+    flowduino/ESPressio-Event@^5.8.1
+    flowduino/ESPressio-Serializable@^0.10.1
 ```
 
 The Event/Serializable dependencies are intentionally not declared as mandatory package dependencies of ESPressio Serial because they are required only by the opt-in Event Monitor feature.
@@ -1004,16 +1004,16 @@ The generic console requires only ESPressio Serial:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.5.0
+    flowduino/ESPressio-Serial@^0.5.1
 ```
 
 The Event Console additionally requires the runtime Event and JSON stacks:
 
 ```ini
 lib_deps =
-    flowduino/ESPressio-Serial@^0.5.0
-    flowduino/ESPressio-Event@^5.8.0
-    flowduino/ESPressio-Serializable@^0.10.0
+    flowduino/ESPressio-Serial@^0.5.1
+    flowduino/ESPressio-Event@^5.8.1
+    flowduino/ESPressio-Serializable@^0.10.1
     bblanchon/ArduinoJson
 ```
 
@@ -1045,7 +1045,7 @@ Hardware-radio implementations belong in the planned **ESPressio Radio** library
 
 # Summary
 
-ESPressio Serial 0.3.0 provides three complementary layers:
+ESPressio Serial provides three complementary layers:
 
 ```text
 CORE
@@ -1060,6 +1060,7 @@ DIAGNOSTICS / LOGGING
     SystemClockMonitor          [opt-in Timing]
     ThreadMonitor               [opt-in Threads]
     EventMonitor                [opt-in Event + Serializable]
+    Command/Security/Sockets/ESP-Now monitors [opt-in]
     DiagnosticMonitor
 
 OPERATOR CONSOLE
@@ -1068,7 +1069,7 @@ OPERATOR CONSOLE
         Print output
         extensible commands
 
-    EventConsole                [opt-in Event 5.6 + Serializable JSON]
+    EventConsole                [opt-in Event + Serializable JSON]
         runtime Event discovery
         schema description
         JSON composition
