@@ -1,3 +1,23 @@
+## 0.5.2
+
+### Fixed
+
+- Fixed a heap-pressure failure path in `Console::Poll()` where the bounded input line still grew its backing `std::string` incrementally and could reach `std::terminate()` if a late `push_back()` allocation failed.
+- `Console::Initialize()` now reserves the configured `MaximumLineLength` capacity before publishing the console as initialized.
+- If the bounded input capacity cannot be reserved, console initialization now fails cleanly instead of leaving a partially initialized console that can fail later while accepting input.
+- Corrected `component.mk` version macros that had remained at 0.5.0 after the 0.5.1 release.
+
+### Tests
+
+- Added regression coverage confirming that the configured input capacity is established during initialization and is retained across normal polling, buffer clearing, maximum-length input, and over-length discard handling.
+- The test-only capacity accessor is compiled only under `ESPRESSIO_SERIAL_TESTING` and does not alter the production API surface.
+
+### Compatibility
+
+- No breaking public API changes.
+- Existing maximum-line-length, discard, prompt, echo, command, and interceptor behavior is unchanged.
+- Core Serial remains dependency-free.
+
 ## 0.5.1
 
 ### Fixed
@@ -104,7 +124,6 @@ The structure follows the principles of [Keep a Changelog](https://keepachangelo
 - Added optional pre-dispatch operator confirmation.
 - Added safe-by-default Event dispatch authorization using allow-list, allow-all, and deny-list policies; deny-list entries override broader access.
 - Added optional `ILoggerSink` audit integration for operator dispatch, denial, malformed JSON, and construction/dispatch failures.
-- Added `Console`, `EventConsole`, and `EventConsoleLoopback` examples.
 - Added host-side `Console` tests and an `EventConsole` contract test covering discovery, description, access policy, JSON command handling, confirmation, and dispatch.
 - Added the 0.3.0 feature specification.
 
