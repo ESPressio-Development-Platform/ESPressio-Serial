@@ -12,11 +12,11 @@ jobs:
     steps:
       - name: Checkout Serial
         uses: actions/checkout@v4
-      - name: Checkout ESPressio Command 0.3.0
+      - name: Checkout ESPressio Command 0.4.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Command
-          ref: 0.3.0
+          ref: 0.4.0
           path: deps/ESPressio-Command
       - name: Checkout ESPressio Observable 3.0.1
         uses: actions/checkout@v4
@@ -78,35 +78,35 @@ jobs:
           repository: Flowduino/ESPressio-Serializable
           ref: 0.10.2
           path: project/dependencies/ESPressio-Serializable
-      - name: Checkout ESPressio Event 5.8.4
+      - name: Checkout ESPressio Event 6.0.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Event
-          ref: 5.8.4
+          ref: 6.0.0
           path: project/dependencies/ESPressio-Event
-      - name: Checkout ESPressio Command 0.3.0
+      - name: Checkout ESPressio Command 0.4.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Command
-          ref: 0.3.0
+          ref: 0.4.0
           path: project/dependencies/ESPressio-Command
-      - name: Checkout ESPressio Security 0.2.0
+      - name: Checkout ESPressio Security 0.3.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Security
-          ref: 0.2.0
+          ref: 0.3.0
           path: project/dependencies/ESPressio-Security
-      - name: Checkout ESPressio Sockets 0.5.0
+      - name: Checkout ESPressio Sockets 0.6.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Sockets
-          ref: 0.5.0
+          ref: 0.6.0
           path: project/dependencies/ESPressio-Sockets
-      - name: Checkout ESPressio ESP-Now 0.5.3
+      - name: Checkout ESPressio ESP-Now 0.6.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-ESP-Now
-          ref: 0.5.3
+          ref: 0.6.0
           path: project/dependencies/ESPressio-ESP-Now
       - uses: actions/setup-python@v5
         with:

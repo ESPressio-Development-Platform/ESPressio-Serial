@@ -1,3 +1,32 @@
+## 0.6.0 — 2026-08-21
+
+### Changed
+
+- Raised the validated optional Event Monitor/EventConsole integration baseline to ESPressio Event >= 6.0.0 < 7.0.0.
+- Raised the validated optional Command integration baseline to ESPressio Command >= 0.4.0 < 1.0.0.
+- Raised the validated optional Security integration baseline to ESPressio Security >= 0.3.0 < 1.0.0.
+- Raised the validated optional Sockets integration baseline to ESPressio Sockets >= 0.6.0 < 1.0.0.
+- Raised the validated optional ESP-Now integration baseline to ESPressio ESP-Now >= 0.6.0 < 1.0.0.
+- Updated ESP32 integration CI to compile Serial against the fully released architecture generation: Event 6.0.0, Command 0.4.0, Security 0.3.0, Sockets 0.6.0 and ESP-Now 0.6.0.
+- Retained Observable 3.0.1, Serializable 0.10.2, Units 0.2.3, Timing 2.2.4 and Threads 3.1.4 baselines.
+- Updated release metadata, README and textual/graphical dependency charts for Serial 0.6.0.
+
+### Architecture
+
+- Serial remains the terminal/downstream diagnostics and operator layer.
+- Core Serial remains dependency-free.
+- All ESPressio integrations remain opt-in.
+- Event 6.0.0 no longer owns Command-, Security-, Sockets-, or ESP-Now-specific Event bridges; those integrations are now owned by the corresponding domain libraries, eliminating the previous reciprocal dependency risks upstream of Serial.
+
+### Compatibility
+
+- No Serial public API or runtime semantics are intentionally changed by this dependency cascade.
+- Applications selecting Event integrations must use the Event 6.x generation and the corresponding domain-library releases where concrete Event bridge ownership moved.
+
+### Tracking
+
+- Implements #15.
+
 ## 0.5.2
 
 ### Changed
