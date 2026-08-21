@@ -2,8 +2,9 @@ name: Host Tests
 
 on:
   push:
-    branches: [main, bugfix/7-event-monitor-structured-payload-safety, feature/8-dependency-refresh-0.5.1]
+    branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   host-tests:
