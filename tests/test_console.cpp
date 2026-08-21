@@ -1,4 +1,5 @@
 #include <cassert>
+#include <limits>
 #include <string>
 
 #include <ESPressio_Console.hpp>
@@ -51,6 +52,26 @@ int main() {
     using namespace ESPressio::Serial;
 
     TestStream stream;
+
+    {
+        Console impossibleConsole;
+        ConsoleConfig impossibleConfig;
+        impossibleConfig.ShowPrompt = false;
+        impossibleConfig.MaximumLineLength =
+            std::numeric_limits<std::size_t>::max();
+
+        assert(
+            !impossibleConsole.Initialize(
+                stream,
+                stream,
+                impossibleConfig
+            )
+        );
+
+        assert(
+            !impossibleConsole.GetIsInitialized()
+        );
+    }
 
     Console console;
 
