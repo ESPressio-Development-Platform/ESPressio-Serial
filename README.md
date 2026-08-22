@@ -4,9 +4,9 @@ Serial, console, logging and diagnostics components for the ESPressio Developmen
 
 ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It provides human-facing diagnostics and interactive control without forcing Serial concerns into the libraries being observed.
 
-## Current Version — 0.7.2
+## Current Version — 0.7.3
 
-Version **0.7.2** is a dependency-maintenance patch release over 0.7.1. It raises Serial's validated optional ESP-Now monitor baseline to released ESP-Now 0.8.0, preserving all Serial public interfaces and runtime semantics. Serial's core still has no mandatory ESPressio dependencies; integrations are selected explicitly.
+Version **0.7.3** is the repository-relocation dependency patch for the Serial 0.7 generation, validating every optional integration against the migrated ESPressio release stack while preserving all Serial public interfaces and runtime semantics. Serial's core still has no mandatory ESPressio dependencies; integrations are selected explicitly.
 
 - structured logs;
 - a bounded diagnostic history before a crash/fault;
@@ -64,46 +64,46 @@ Optional integrations are:
 
 ```text
 CommandConsole / CommandMonitor
-    - - -> ESPressio Command >= 1.0.0 < 2.0.0
+    - - -> ESPressio Command >= 1.0.1 < 2.0.0
 
 SecurityMonitor
-    - - -> ESPressio Security >= 0.3.0 < 1.0.0
+    - - -> ESPressio Security >= 0.3.1 < 1.0.0
 
 SocketWorkerMonitor
-    - - -> ESPressio Sockets >= 0.7.0 < 1.0.0
+    - - -> ESPressio Sockets >= 0.7.1 < 1.0.0
 
 SocketSecuritySessionMonitor
-    - - -> ESPressio Sockets >= 0.7.0 < 1.0.0
-    - - -> ESPressio Security >= 0.3.0 < 1.0.0
+    - - -> ESPressio Sockets >= 0.7.1 < 1.0.0
+    - - -> ESPressio Security >= 0.3.1 < 1.0.0
 
 ESPNowTransportMonitor
-    - - -> ESPressio ESP-Now >= 0.8.0 < 1.0.0
+    - - -> ESPressio ESP-Now >= 0.8.1 < 1.0.0
 
 SystemClockMonitor
-    - - -> ESPressio Timing >= 2.2.4 < 3.0.0
+    - - -> ESPressio Timing >= 2.2.5 < 3.0.0
 
 ThreadMonitor
-    - - -> ESPressio Threads >= 3.1.4 < 4.0.0
+    - - -> ESPressio Threads >= 3.1.5 < 4.0.0
 
 EventMonitor / EventConsole
-    - - -> ESPressio Event >= 6.0.0 < 7.0.0
-    - - -> ESPressio Serializable >= 0.10.2 < 1.0.0
+    - - -> ESPressio Event >= 6.0.1 < 7.0.0
+    - - -> ESPressio Serializable >= 0.10.3 < 1.0.0
 ```
 
 The coordinated release generation is:
 
 ```text
-Observable    3.0.1
-Serializable  0.10.2
-Units         0.2.3
-Timing        2.2.4
-Threads       3.1.4
-Command       1.0.0
-Security      0.3.0
-Event         6.0.0
-Sockets       0.7.0
-ESP-Now       0.8.0
-Serial        0.7.2
+Observable    3.0.2
+Serializable  0.10.3
+Units         0.2.4
+Timing        2.2.5
+Threads       3.1.5
+Command       1.0.1
+Security      0.3.1
+Event         6.0.1
+Sockets       0.7.1
+ESP-Now       0.8.1
+Serial        0.7.3
 ```
 
 Command 1.0.0 introduces representation-neutral `CommandValue` values for structured invocations. Serial's Command monitor/console integrations are validated directly against that 1.x API. Sockets 0.7.0 preserves its existing Command protocol-v1 wire format while adapting typed values at its transport boundary. ESP-Now 0.8.0 retains the same wire/protocol compatibility as 0.7.x while hardening its receive-task stack and exposing stack-headroom diagnostics.
