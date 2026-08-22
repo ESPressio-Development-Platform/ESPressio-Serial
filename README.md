@@ -1,6 +1,6 @@
 # ESPressio Serial
 
-Serial, console, logging and diagnostics components for the Flowduino ESPressio Development Platform.
+Serial, console, logging and diagnostics components for the ESPressio Development Platform.
 
 ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It provides human-facing diagnostics and interactive control without forcing Serial concerns into the libraries being observed.
 

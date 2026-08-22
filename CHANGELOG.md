@@ -122,7 +122,7 @@
 - Replaced EventMonitor's tree-building `BinaryArchive::Load()` diagnostic path with bounded, allocation-free ESPB traversal from ESPressio Serializable 0.10.2, preventing valid payload diagnostics from requiring a second heap-backed `SerializationNode` tree.
 - Hardened structured `EventMonitor` payload diagnostics so malformed, truncated, excessively nested, or otherwise unreasonable Event Transport payloads are rejected under monitor-specific decode limits.
 - Added fail-safe fallback from `Structured` to bounded `Hex` output whenever a payload fails structured validation or exceeds the configured monitor limits.
-- Updated Event Monitor's optional Serializable baseline to ESPressio Serializable >= 0.10.2 < 1.0.0, consuming the bounded/allocation-free BinaryArchive facilities introduced for Flowduino/ESPressio-Serializable#2.
+- Updated Event Monitor's optional Serializable baseline to ESPressio Serializable >= 0.10.2 < 1.0.0, consuming the bounded/allocation-free BinaryArchive facilities introduced for ESPressio-Development-Platform/ESPressio-Serializable#2.
 
 ### Added
 
