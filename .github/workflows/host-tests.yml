@@ -94,17 +94,17 @@ jobs:
           repository: Flowduino/ESPressio-Security
           ref: 0.3.0
           path: project/dependencies/ESPressio-Security
-      - name: Checkout ESPressio Sockets 0.7.0 candidate
+      - name: Checkout ESPressio Sockets 0.7.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-Sockets
-          ref: feature/17-command-1.0.0-cascade-0.7.0
+          ref: 0.7.0
           path: project/dependencies/ESPressio-Sockets
-      - name: Checkout ESPressio ESP-Now 0.7.0 candidate
+      - name: Checkout ESPressio ESP-Now 0.7.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-ESP-Now
-          ref: feature/22-command-1.0.0-cascade-0.7.0
+          ref: 0.7.0
           path: project/dependencies/ESPressio-ESP-Now
       - uses: actions/setup-python@v5
         with:
