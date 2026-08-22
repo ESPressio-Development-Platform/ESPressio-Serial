@@ -100,11 +100,11 @@ jobs:
           repository: Flowduino/ESPressio-Sockets
           ref: 0.7.0
           path: project/dependencies/ESPressio-Sockets
-      - name: Checkout ESPressio ESP-Now 0.7.0
+      - name: Checkout ESPressio ESP-Now 0.8.0
         uses: actions/checkout@v4
         with:
           repository: Flowduino/ESPressio-ESP-Now
-          ref: 0.7.0
+          ref: 0.8.0
           path: project/dependencies/ESPressio-ESP-Now
       - uses: actions/setup-python@v5
         with:

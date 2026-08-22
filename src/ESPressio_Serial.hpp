@@ -15,11 +15,11 @@
  *   ESPressio_DiagnosticMonitor.hpp
  *
  * Observable subsystem monitors:
- *   ESPressio_CommandMonitor.hpp          -> Command >= 0.3.0 < 1.0.0
- *   ESPressio_SecurityMonitor.hpp         -> Security >= 0.2.0 < 1.0.0
- *   ESPressio_SocketWorkerMonitor.hpp     -> Sockets >= 0.5.0 < 1.0.0
+ *   ESPressio_CommandMonitor.hpp          -> Command >= 1.0.0 < 2.0.0
+ *   ESPressio_SecurityMonitor.hpp         -> Security >= 0.3.0 < 1.0.0
+ *   ESPressio_SocketWorkerMonitor.hpp     -> Sockets >= 0.7.0 < 1.0.0
  *   ESPressio_SocketSecuritySessionMonitor.hpp
- *   ESPressio_ESPNowTransportMonitor.hpp  -> ESP-Now >= 0.5.0 < 1.0.0
+ *   ESPressio_ESPNowTransportMonitor.hpp  -> ESP-Now >= 0.8.0 < 1.0.0
  *
  * Interactive integrations:
  *   ESPressio_CommandConsole.hpp
