@@ -4,9 +4,9 @@ Serial, console, logging and diagnostics components for the Flowduino ESPressio 
 
 ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It provides human-facing diagnostics and interactive control without forcing Serial concerns into the libraries being observed.
 
-## Current Version — 0.7.0
+## Current Version — 0.7.1
 
-Version **0.7.0** cascades ESPressio Command 1.0.0 and the corresponding Sockets 0.7.0 / ESP-Now 0.7.0 compatibility generation into the terminal diagnostics/operator layer. Serial's core still has no mandatory ESPressio dependencies; integrations are selected explicitly.
+Version **0.7.1** is a patch release over the Command 1.0.0 / Sockets 0.7.0 / ESP-Now 0.7.0 compatibility generation introduced in 0.7.0. It fixes Console input-buffer heap-pressure handling without changing dependency baselines or public interfaces. Serial's core still has no mandatory ESPressio dependencies; integrations are selected explicitly.
 
 - structured logs;
 - a bounded diagnostic history before a crash/fault;
@@ -103,7 +103,7 @@ Security      0.3.0
 Event         6.0.0
 Sockets       0.7.0
 ESP-Now       0.7.0
-Serial        0.7.0
+Serial        0.7.1
 ```
 
 Command 1.0.0 introduces representation-neutral `CommandValue` values for structured invocations. Serial's Command monitor/console integrations are validated directly against that 1.x API. Sockets 0.7.0 and ESP-Now 0.7.0 preserve their existing Command protocol-v1 wire formats while adapting typed values at their transport boundaries.
@@ -112,7 +112,7 @@ Event 6.0.0 contains only the generic Event mechanism plus integrations for libr
 
 # Interactive Runtime Serializable Event Console
 
-Serial 0.7.0 retains the structured EventMonitor safety introduced in 0.5.1: bounded, allocation-free ESPB traversal from ESPressio Serializable 0.10.2 with fail-safe hexadecimal fallback for malformed or outside-limit payloads.
+Serial 0.7.1 retains the structured EventMonitor safety introduced in 0.5.1: bounded, allocation-free ESPB traversal from ESPressio Serializable 0.10.2 with fail-safe hexadecimal fallback for malformed or outside-limit payloads.
 
 Architecture:
 
@@ -359,7 +359,7 @@ This is particularly important because diagnostic code must not make a stressed 
 
 # Other subsystem monitors
 
-Serial 0.6.0 also provides opt-in monitors for:
+Serial 0.7.1 also provides opt-in monitors for:
 
 ```text
 CommandMonitor
