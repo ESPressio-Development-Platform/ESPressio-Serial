@@ -4,9 +4,9 @@ Serial, console, logging and diagnostics components for the Flowduino ESPressio 
 
 ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It provides human-facing diagnostics and interactive control without forcing Serial concerns into the libraries being observed.
 
-## Current Version — 0.7.1
+## Current Version — 0.7.2
 
-Version **0.7.1** is a patch release over the Command 1.0.0 / Sockets 0.7.0 / ESP-Now 0.7.0 compatibility generation introduced in 0.7.0. It fixes Console input-buffer heap-pressure handling without changing dependency baselines or public interfaces. Serial's core still has no mandatory ESPressio dependencies; integrations are selected explicitly.
+Version **0.7.2** is a dependency-maintenance patch release over 0.7.1. It raises Serial's validated optional ESP-Now monitor baseline to released ESP-Now 0.8.0, preserving all Serial public interfaces and runtime semantics. Serial's core still has no mandatory ESPressio dependencies; integrations are selected explicitly.
 
 - structured logs;
 - a bounded diagnostic history before a crash/fault;
@@ -77,7 +77,7 @@ SocketSecuritySessionMonitor
     - - -> ESPressio Security >= 0.3.0 < 1.0.0
 
 ESPNowTransportMonitor
-    - - -> ESPressio ESP-Now >= 0.7.0 < 1.0.0
+    - - -> ESPressio ESP-Now >= 0.8.0 < 1.0.0
 
 SystemClockMonitor
     - - -> ESPressio Timing >= 2.2.4 < 3.0.0
@@ -102,17 +102,17 @@ Command       1.0.0
 Security      0.3.0
 Event         6.0.0
 Sockets       0.7.0
-ESP-Now       0.7.0
-Serial        0.7.1
+ESP-Now       0.8.0
+Serial        0.7.2
 ```
 
-Command 1.0.0 introduces representation-neutral `CommandValue` values for structured invocations. Serial's Command monitor/console integrations are validated directly against that 1.x API. Sockets 0.7.0 and ESP-Now 0.7.0 preserve their existing Command protocol-v1 wire formats while adapting typed values at their transport boundaries.
+Command 1.0.0 introduces representation-neutral `CommandValue` values for structured invocations. Serial's Command monitor/console integrations are validated directly against that 1.x API. Sockets 0.7.0 preserves its existing Command protocol-v1 wire format while adapting typed values at its transport boundary. ESP-Now 0.8.0 retains the same wire/protocol compatibility as 0.7.x while hardening its receive-task stack and exposing stack-headroom diagnostics.
 
 Event 6.0.0 contains only the generic Event mechanism plus integrations for libraries Event genuinely consumes itself. Command-, Security-, Sockets-, and ESP-Now-specific Event integrations remain supplied by their owning libraries, with Serial downstream of the complete graph.
 
 # Interactive Runtime Serializable Event Console
 
-Serial 0.7.1 retains the structured EventMonitor safety introduced in 0.5.1: bounded, allocation-free ESPB traversal from ESPressio Serializable 0.10.2 with fail-safe hexadecimal fallback for malformed or outside-limit payloads.
+Serial 0.7.2 retains the structured EventMonitor safety introduced in 0.5.1: bounded, allocation-free ESPB traversal from ESPressio Serializable 0.10.2 with fail-safe hexadecimal fallback for malformed or outside-limit payloads.
 
 Architecture:
 
@@ -359,7 +359,7 @@ This is particularly important because diagnostic code must not make a stressed 
 
 # Other subsystem monitors
 
-Serial 0.7.1 also provides opt-in monitors for:
+Serial 0.7.2 also provides opt-in monitors for:
 
 ```text
 CommandMonitor
@@ -371,7 +371,7 @@ ESPNowTransportMonitor
 
 These observe the originating library's native Observable contract. Security and Socket monitors are instance-oriented because the application chooses the concrete `TransportSecurity`, `SocketWorker` or `SocketSecuritySession` instance to observe.
 
-`ESPNowTransportMonitor` observes the process-wide ESP-NOW transport lifecycle and peer/send activity.
+`ESPNowTransportMonitor` observes the process-wide ESP-NOW transport lifecycle and peer/send activity. Serial 0.7.2 validates this monitor against ESPressio ESP-Now 0.8.0.
 
 # Aggregate `DiagnosticMonitor`
 
