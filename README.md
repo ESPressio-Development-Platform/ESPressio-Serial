@@ -4,13 +4,9 @@ Serial, console, logging and diagnostics components for the Flowduino ESPressio 
 
 ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It provides human-facing diagnostics and interactive control without forcing Serial concerns into the libraries being observed.
 
-## Current Version — 0.6.0
+## Current Version — 0.7.0
 
-Serial 0.6.0 validates its opt-in integrations against the completed Event 6.0.0 architecture generation while preserving a dependency-free core.
-
-## Why ESPressio Serial?
-
-Embedded applications frequently need several human-facing facilities at once:
+Version **0.7.0** cascades ESPressio Command 1.0.0 and the corresponding Sockets 0.7.0 / ESP-Now 0.7.0 compatibility generation into the terminal diagnostics/operator layer. Serial's core still has no mandatory ESPressio dependencies; integrations are selected explicitly.
 
 - structured logs;
 - a bounded diagnostic history before a crash/fault;
@@ -68,20 +64,20 @@ Optional integrations are:
 
 ```text
 CommandConsole / CommandMonitor
-    - - -> ESPressio Command >= 0.4.0 < 1.0.0
+    - - -> ESPressio Command >= 1.0.0 < 2.0.0
 
 SecurityMonitor
     - - -> ESPressio Security >= 0.3.0 < 1.0.0
 
 SocketWorkerMonitor
-    - - -> ESPressio Sockets >= 0.6.0 < 1.0.0
+    - - -> ESPressio Sockets >= 0.7.0 < 1.0.0
 
 SocketSecuritySessionMonitor
-    - - -> ESPressio Sockets >= 0.6.0 < 1.0.0
+    - - -> ESPressio Sockets >= 0.7.0 < 1.0.0
     - - -> ESPressio Security >= 0.3.0 < 1.0.0
 
 ESPNowTransportMonitor
-    - - -> ESPressio ESP-Now >= 0.6.0 < 1.0.0
+    - - -> ESPressio ESP-Now >= 0.7.0 < 1.0.0
 
 SystemClockMonitor
     - - -> ESPressio Timing >= 2.2.4 < 3.0.0
@@ -94,92 +90,29 @@ EventMonitor / EventConsole
     - - -> ESPressio Serializable >= 0.10.2 < 1.0.0
 ```
 
-See [ESPRESSIO_DEPENDENCY_CHART.md](ESPRESSIO_DEPENDENCY_CHART.md).
-
-# Installation
-
-Core Serial:
-
-```ini
-lib_deps =
-    flowduino/ESPressio-Serial@^0.6.0
-```
-
-Then add only the ESPressio libraries needed by the selected monitor/console integration.
-
-# Core include
-
-```cpp
-#include <ESPressio_Serial.hpp>
-```
-
-The core umbrella does not silently include Event, Command, Security, Sockets, ESP-Now, Timing, Threads or Serializable.
-
-# Generic interactive `Console`
-
-The generic Console is available independently of Event and Command:
-
-```cpp
-#include <ESPressio_Console.hpp>
-
-ESPressio::Serial::Console console;
-
-void setup() {
-    ::Serial.begin(115200);
-
-    ESPressio::Serial::ConsoleConfig config;
-    config.Prompt = "espressio> ";
-
-    console.Initialize(
-        ::Serial,
-        ::Serial,
-        config
-    );
-
-    console.RegisterCommand(
-        "hello",
-        "Print a greeting",
-        [](const auto& context) {
-            // Handle context.Arguments.
-        }
-    );
-}
-
-void loop() {
-    console.Poll();
-}
-```
-
-Input uses Arduino `Stream`; output uses Arduino `Print`. A console can therefore sit on Hardware Serial, USB CDC or another compatible pair rather than being hard-wired to one UART.
-
-The line buffer is bounded through:
-
-```cpp
-ConsoleConfig::MaximumLineLength
-```
-
-and the Console supports command registration/unregistration, help, arguments, prompt configuration, optional echo, interactive line interceptors, backspace/delete and CR/LF handling.
-
-Multiple interceptors are intentional: extensions can maintain independent interactive states without replacing one global input handler.
-
-# ESPressio Command integration
-
-Serial can use ESPressio Command as the common invocation model rather than maintaining a second application Command tree.
-
-This allows the same Command definitions to serve Serial and other transports:
+The coordinated release generation is:
 
 ```text
-Serial input
-    -> CommandConsole
-    -> CommandRegistry
-    -> validated application callback
+Observable    3.0.1
+Serializable  0.10.2
+Units         0.2.3
+Timing        2.2.4
+Threads       3.1.4
+Command       1.0.0
+Security      0.3.0
+Event         6.0.0
+Sockets       0.7.0
+ESP-Now       0.7.0
+Serial        0.7.0
 ```
 
-`CommandMonitor` separately observes registry lifecycle for diagnostics. Both integrations require Command 0.4.x only when selected.
+Command 1.0.0 introduces representation-neutral `CommandValue` values for structured invocations. Serial's Command monitor/console integrations are validated directly against that 1.x API. Sockets 0.7.0 and ESP-Now 0.7.0 preserve their existing Command protocol-v1 wire formats while adapting typed values at their transport boundaries.
+
+Event 6.0.0 contains only the generic Event mechanism plus integrations for libraries Event genuinely consumes itself. Command-, Security-, Sockets-, and ESP-Now-specific Event integrations remain supplied by their owning libraries, with Serial downstream of the complete graph.
 
 # Interactive Runtime Serializable Event Console
 
-`EventConsole` provides an operator-facing interface over Event 6.x runtime Serializable Event discovery and construction.
+Serial 0.7.0 retains the structured EventMonitor safety introduced in 0.5.1: bounded, allocation-free ESPB traversal from ESPressio Serializable 0.10.2 with fail-safe hexadecimal fallback for malformed or outside-limit payloads.
 
 Architecture:
 

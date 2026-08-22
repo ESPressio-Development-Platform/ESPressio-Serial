@@ -1,3 +1,31 @@
+## 0.7.0 — 2026-08-22
+
+### Changed
+
+- Raised the validated optional ESPressio Command baseline to Command >= 1.0.0 < 2.0.0.
+- Raised the validated optional ESPressio Sockets baseline to Sockets >= 0.7.0 < 1.0.0.
+- Raised the validated optional ESPressio ESP-Now baseline to ESP-Now >= 0.7.0 < 1.0.0.
+- Updated host validation to released Command 1.0.0.
+- Updated ESP32 monitor integration validation to Command 1.0.0 plus the Sockets 0.7.0 and ESP-Now 0.7.0 cascade candidates; these candidate refs are replaced by release tags before the final Serial release gate.
+- Retained Event 6.0.0, Security 0.3.0, Observable 3.0.1, Serializable 0.10.2, Units 0.2.3, Timing 2.2.4 and Threads 3.1.4 baselines.
+- Updated release metadata, README and textual/graphical dependency charts for Serial 0.7.0.
+
+### Architecture
+
+- Core Serial remains dependency-free.
+- Command, Sockets, ESP-Now and all other subsystem monitors remain opt-in.
+- Serial consumes Command 1.x as the terminal diagnostics/operator layer; it does not introduce a reverse dependency.
+
+### Compatibility
+
+- No Serial public API or runtime semantics are intentionally changed by this cascade.
+- Existing Command monitor/console behavior is retained while validating against Command 1.0.0's typed structured-invocation API.
+
+### Tracking
+
+- Implements #20.
+- Cascades ESPressio Command 1.0.0 through Sockets 0.7.0 and ESP-Now 0.7.0.
+
 ## 0.6.0 — 2026-08-21
 
 ### Changed
