@@ -163,6 +163,16 @@
 
 # Changelog
 
+## 0.7.3 — 2026-08-22
+
+### Changed
+- Published the post-migration ESPressio Serial package generation from `ESPressio-Development-Platform`.
+- Raised optional Command to `>=1.0.1 <2.0.0`, Security to `>=0.3.1 <1.0.0`, Sockets to `>=0.7.1 <1.0.0`, ESP-Now to `>=0.8.1 <1.0.0`, Event to `>=6.0.1 <7.0.0`, Serializable to `>=0.10.3 <1.0.0`, Timing to `>=2.2.5 <3.0.0`, and Threads to `>=3.1.5 <4.0.0`.
+- Updated package metadata, operator/integration documentation, CI validation, and dependency documentation for the complete migrated release generation.
+
+### Compatibility
+- No Serial public API or runtime behaviour changes are introduced by this repository-relocation patch release. Core Serial remains free of mandatory ESPressio dependencies.
+
 ## 0.3.3 — 2026-08-20
 
 ### Changed
