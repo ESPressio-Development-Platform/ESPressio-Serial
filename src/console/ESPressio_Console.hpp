@@ -200,10 +200,22 @@ public:
         Print& output,
         const ConsoleConfig& config = {}
     ) {
+        ConsoleConfig preparedConfig;
+        std::string preparedLine;
+
+        try {
+            preparedConfig = config;
+            preparedLine.reserve(
+                preparedConfig.MaximumLineLength
+            );
+        } catch (...) {
+            return false;
+        }
+
         _input = &input;
         _output = &output;
-        _config = config;
-        _line.clear();
+        _config = std::move(preparedConfig);
+        _line = std::move(preparedLine);
         _discardUntilNewline = false;
 
         PrintPrompt();
@@ -231,6 +243,12 @@ public:
     Print* GetOutput() const noexcept {
         return _output;
     }
+
+#ifdef ESPRESSIO_SERIAL_TESTING
+    std::size_t __GetInputBufferCapacityForTesting() const noexcept {
+        return _line.capacity();
+    }
+#endif
 
     uint32_t RegisterLineInterceptor(
         ConsoleLineInterceptor interceptor
