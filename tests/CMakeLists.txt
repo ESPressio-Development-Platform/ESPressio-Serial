@@ -14,6 +14,7 @@ add_executable(
 
 target_compile_features(test_console PRIVATE cxx_std_17)
 target_compile_options(test_console PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_definitions(test_console PRIVATE ESPRESSIO_SERIAL_TESTING)
 target_include_directories(test_console PRIVATE stubs ../src)
 add_test(NAME Console COMMAND test_console)
 
