@@ -29,7 +29,7 @@
 - Raised the validated optional ESPressio Sockets baseline to Sockets >= 0.7.0 < 1.0.0.
 - Raised the validated optional ESPressio ESP-Now baseline to ESP-Now >= 0.7.0 < 1.0.0.
 - Updated host validation to released Command 1.0.0.
-- Updated ESP32 monitor integration validation to Command 1.0.0 plus the Sockets 0.7.0 and ESP-Now 0.7.0 cascade candidates; these candidate refs are replaced by release tags before the final Serial release gate.
+- Validated the ESP32 monitor integration first against the Sockets 0.7.0 and ESP-Now 0.7.0 cascade candidate heads, then replaced those candidate refs with the actual released 0.7.0 tags and revalidated the final release head before Serial 0.7.0 was merged and released.
 - Retained Event 6.0.0, Security 0.3.0, Observable 3.0.1, Serializable 0.10.2, Units 0.2.3, Timing 2.2.4 and Threads 3.1.4 baselines.
 - Updated release metadata, README and textual/graphical dependency charts for Serial 0.7.0.
 
