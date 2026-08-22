@@ -1,3 +1,24 @@
+## 0.7.2 — 2026-08-22
+
+### Changed
+
+- Raised the validated optional ESPressio ESP-Now monitor baseline from ESP-Now >= 0.7.0 < 1.0.0 to ESP-Now >= 0.8.0 < 1.0.0.
+- Updated ESP32 integration CI to compile Serial's ESP-NOW monitor against released ESP-Now 0.8.0.
+- Updated package metadata, README, umbrella dependency guidance, and textual/graphical dependency charts for Serial 0.7.2.
+- Retained Command 1.0.0, Security 0.3.0, Sockets 0.7.0, Event 6.0.0, Serializable 0.10.2, Timing 2.2.4, Threads 3.1.4, Units 0.2.3, and Observable 3.0.1 baselines.
+
+### Compatibility
+
+- No Serial public API or runtime semantics are changed.
+- Core Serial remains dependency-free.
+- ESP-Now remains an opt-in integration.
+- ESP-Now 0.8.0 is source-compatible with the previous 0.7.x integration and preserves its wire format and protocol identifiers.
+
+### Tracking
+
+- Implements #26.
+- Cascades ESPressio ESP-Now 0.8.0.
+
 ## 0.7.1 — 2026-08-22
 
 ### Fixed
