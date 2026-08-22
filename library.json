@@ -3,16 +3,17 @@
     "description": "Serial and console-oriented components for ESPressio, including opt-in Observable, Command and Event integrations.",
     "keywords": "esp32,serial,console,monitor,event,transport,diagnostics,observable,espressio",
     "authors": {
-        "name": "Flowduino",
+        "name": "Simon J. Stuart",
         "maintainer": true,
-        "url": "https://flowduino.com"
+        "url": "https://espressio.org"
     },
+    "homepage": "https://espressio.org",
     "build": {
         "flags": ["-DESPRESSIO_SERIAL"]
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/Flowduino/ESPressio-Serial.git"
+        "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git"
     },
     "version": "0.7.2",
     "license": "Apache-2.0",
