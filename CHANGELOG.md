@@ -1,3 +1,26 @@
+## 0.7.1 — 2026-08-22
+
+### Fixed
+
+- `Console::Initialize()` now reserves the configured `MaximumLineLength` capacity before the Console becomes initialized, eliminating an avoidable late `std::string` growth allocation from ordinary `Console::Poll()` input handling.
+- Initialization now fails cleanly if the configured bounded input capacity cannot be reserved, rather than leaving a partially initialized Console that may later fail while accepting input.
+- Preserved existing maximum-line-length rejection/discard behavior, prompt handling, command dispatch, and public Console API semantics.
+
+### Validation
+
+- Added regression coverage verifying that the configured input capacity is reserved during initialization and retained after normal polling, exact-limit input, line clearing, and over-limit rejection.
+- Added regression coverage verifying that an impossible reservation causes `Initialize()` to return `false` while the Console remains uninitialized.
+
+### Compatibility
+
+- No public API changes.
+- No dependency baseline changes.
+- No downstream ESPressio dependency cascade is required.
+
+### Tracking
+
+- Fixes #10.
+
 ## 0.7.0 — 2026-08-22
 
 ### Changed
