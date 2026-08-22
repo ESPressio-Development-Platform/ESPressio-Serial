@@ -14,7 +14,7 @@
         "type": "git",
         "url": "https://github.com/Flowduino/ESPressio-Serial.git"
     },
-    "version": "0.7.0",
+    "version": "0.7.1",
     "license": "Apache-2.0",
     "frameworks": "arduino",
     "platforms": "espressif32"
