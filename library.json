@@ -8,14 +8,9 @@
         "url": "https://espressio.org"
     },
     "homepage": "https://espressio.org",
-    "build": {
-        "flags": ["-DESPRESSIO_SERIAL"]
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git"
-    },
-    "version": "0.7.2",
+    "build": {"flags": ["-DESPRESSIO_SERIAL"]},
+    "repository": {"type": "git", "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git"},
+    "version": "0.7.3",
     "license": "Apache-2.0",
     "frameworks": "arduino",
     "platforms": "espressif32"
