@@ -36,6 +36,13 @@ int main(){
     platform.state.Client.State=WiFi::ClientState::Connected; platform.state.Client.SSID="Studio"; platform.state.Client.RSSI=-43; platform.state.Client.Channel=6; platform.state.Client.Network.Address=WiFi::IPv4Address(192,168,1,42); platform.state.Revision++;
     assert(wifi.Poll()==WiFi::WiFiStatus::Success);
 
+    platform.state.Client.State=WiFi::ClientState::Reconnecting; platform.state.Client.ReconnectAttempt=2; platform.state.Revision++;
+    assert(wifi.Poll()==WiFi::WiFiStatus::Success);
+    platform.state.Client.State=WiFi::ClientState::Disconnecting; platform.state.Revision++;
+    assert(wifi.Poll()==WiFi::WiFiStatus::Success);
+    platform.state.Client.State=WiFi::ClientState::Disconnected; platform.state.Revision++;
+    assert(wifi.Poll()==WiFi::WiFiStatus::Success);
+
     platform.scanReady=true; platform.state.Scan=WiFi::ScanState::Complete; platform.state.Revision++; assert(wifi.Poll()==WiFi::WiFiStatus::Success);
     monitor.PrintStatus(wifi);
 
@@ -43,6 +50,9 @@ int main(){
     assert(output.text.find("Studio")!=std::string::npos);
     assert(output.text.find("VisibleNetwork")!=std::string::npos);
     assert(output.text.find("192.168.1.42")!=std::string::npos);
+    assert(output.text.find("reconnect-attempt=2")!=std::string::npos);
+    assert(output.text.find("disconnecting")!=std::string::npos);
+    assert(output.text.find("disconnected")!=std::string::npos);
     assert(output.text.find("DO-NOT-PRINT")==std::string::npos);
     assert(output.text.find("ALSO-SECRET")==std::string::npos);
     monitor.Shutdown(); assert(!monitor.IsInitialized());
