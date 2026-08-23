@@ -1,3 +1,28 @@
+## 0.8.0 — 2026-08-23
+
+### Added
+
+- Added optional `ESPressio_WiFiMonitor.hpp` integration targeting ESPressio WiFi 0.1.0.
+- Added `WiFiMonitor` as an `IWiFiObserver` that renders overall mode, independent AP/Client state transitions, scan lifecycle/results, AP station joins/leaves, and Client IP acquisition/loss to an injected Arduino `Print`.
+- Added `PrintStatus()` for an on-demand compact WiFi runtime snapshot.
+- Added host coverage verifying WiFi lifecycle output and explicitly verifying configured passwords are never emitted by the monitor.
+- Added ESP32 compile validation against the WiFi 0.1.0 candidate surface.
+
+### Changed
+
+- Advanced Serial to 0.8.0 because the optional public monitor surface is extended.
+- Updated documentation and dependency guidance for the new terminal `Serial - - -> WiFi` integration edge.
+- Retained the rule that core Serial has no mandatory ESPressio dependency.
+
+### Security
+
+- `WiFiMonitor` observes runtime WiFi state only; it never reads or prints WiFi password fields.
+- Network scan SSIDs and connected Client/AP SSIDs are diagnostic network identity, not credential values.
+
+### Tracking
+
+- Implements #32.
+
 ## 0.7.2 — 2026-08-22
 
 ### Changed

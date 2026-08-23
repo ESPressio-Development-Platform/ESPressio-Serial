@@ -2,41 +2,11 @@
 
 Serial, console, logging and diagnostics components for the ESPressio Development Platform.
 
-ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It provides human-facing diagnostics and interactive control without forcing Serial concerns into the libraries being observed.
+ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It observes and controls other ESPressio subsystems without forcing Serial concerns back into those libraries.
 
-## Current Version — 0.7.3
+## Current Version — 0.8.0
 
-Version **0.7.3** is the repository-relocation dependency patch for the Serial 0.7 generation, validating every optional integration against the migrated ESPressio release stack while preserving all Serial public interfaces and runtime semantics. Serial's core still has no mandatory ESPressio dependencies; integrations are selected explicitly.
-
-- structured logs;
-- a bounded diagnostic history before a crash/fault;
-- an interactive console;
-- Command-backed operator controls;
-- runtime Event discovery/composition;
-- live Timing/Threads/Event/Security/Sockets/ESP-NOW diagnostics.
-
-ESPressio Serial provides those facilities without changing the semantics of the subsystem being observed.
-
-```text
-ESPressio subsystem
-       |
-       | synchronous observer / existing API
-       v
-Serial monitor / console
-       |
-       v
-Arduino Print / Stream
-       |
-   Serial / USB CDC / compatible endpoint
-```
-
-## ESPressio Development Platform
-
-ESPressio libraries are designed to be light-weight, composable, object-oriented and explicit about dependency direction. Serial follows the “pay only for what you select” rule: optional monitors and consoles acquire their source libraries only when those headers/features are used.
-
-## License
-
-Apache License 2.0. See [LICENSE](LICENSE).
+0.8.0 adds the optional **ESPressio WiFi monitor**. Core Serial still has no mandatory ESPressio dependencies; every subsystem integration is selected explicitly.
 
 ## Namespace
 
@@ -44,106 +14,116 @@ Apache License 2.0. See [LICENSE](LICENSE).
 ESPressio::Serial
 ```
 
-Because Arduino exposes a global object named `Serial`, fully qualified ESPressio Serial names are recommended:
+Because Arduino exposes a global object named `Serial`, fully qualified ESPressio names are recommended:
 
 ```cpp
-ESPressio::Serial::EventMonitor monitor;
+ESPressio::Serial::WiFiMonitor wifiMonitor;
 ```
 
-while the Arduino hardware port remains:
+while the hardware port remains `::Serial`.
+
+# WiFi diagnostics
+
+`WiFiMonitor` observes ESPressio WiFi's native `IWiFiObserver` surface. It does not poll Arduino WiFi directly and it never reads configuration credentials.
 
 ```cpp
-::Serial
+#include <ESPressio_WiFiMonitor.hpp>
+
+ESPressio::Serial::WiFiMonitor wifiMonitor;
+
+void setup() {
+    ::Serial.begin(115200);
+    wifiMonitor.Initialize(::Serial, wifi);
+}
 ```
+
+Typical output is intentionally compact and keeps AP and Client contexts separate:
+
+```text
+[ESPressio WiFi] Mode ap -> ap-client
+[ESPressio WiFi] AP starting -> active ssid=ESPressio-Lab stations=0
+[ESPressio WiFi] Client connecting -> connected ssid=Studio rssi=-43 channel=6
+[ESPressio WiFi] ClientIPAddressAcquired ip=192.168.1.42 gateway=192.168.1.1
+[ESPressio WiFi] APStationConnected station=94:B5:55:19:1D:9C
+```
+
+An on-demand runtime snapshot is available without enabling any periodic noise:
+
+```cpp
+wifiMonitor.PrintStatus(wifi);
+```
+
+which produces a line such as:
+
+```text
+[ESPressio WiFi] Status mode=ap-client ap=active stations=1 client=connected ip=192.168.1.42 scan=idle
+```
+
+## Scan diagnostics
+
+When WiFi performs an asynchronous scan, the monitor reports lifecycle and results:
+
+```text
+[ESPressio WiFi] Scan idle -> scanning
+[ESPressio WiFi] ScanComplete count=2
+  ssid=Studio rssi=-43 channel=6 security=wpa2
+  ssid=Guest rssi=-71 channel=11 security=open
+```
+
+The monitor consumes only ESPressio WiFi public types. Arduino/ESP-IDF WiFi types never cross the integration boundary.
+
+## Credential safety
+
+`WiFiMonitor` deliberately has no API that accepts or prints WiFi passwords. It observes runtime state such as SSID, RSSI, channel, IP address and station identity only.
+
+A WiFi Command handler may set credentials, but neither that handler nor this monitor provides a plaintext credential-read operation. Persisted credentials should use ESPressio WiFi's protected Persistence integration.
 
 # Dependency model
 
 The **core ESPressio Serial library has no required ESPressio dependencies**.
 
-Optional integrations are:
+Optional integrations include:
 
 ```text
 CommandConsole / CommandMonitor
-    - - -> ESPressio Command >= 1.0.1 < 2.0.0
+    - - -> Command >= 1.0.1 < 2.0.0
 
 SecurityMonitor
-    - - -> ESPressio Security >= 0.3.1 < 1.0.0
+    - - -> Security >= 0.4.0 < 1.0.0
 
-SocketWorkerMonitor
-    - - -> ESPressio Sockets >= 0.7.1 < 1.0.0
-
-SocketSecuritySessionMonitor
-    - - -> ESPressio Sockets >= 0.7.1 < 1.0.0
-    - - -> ESPressio Security >= 0.3.1 < 1.0.0
+SocketWorkerMonitor / SocketSecuritySessionMonitor
+    - - -> Sockets >= 0.7.1 < 1.0.0
 
 ESPNowTransportMonitor
-    - - -> ESPressio ESP-Now >= 0.8.1 < 1.0.0
+    - - -> ESP-Now >= 0.8.1 < 1.0.0
 
 SystemClockMonitor
-    - - -> ESPressio Timing >= 2.2.5 < 3.0.0
+    - - -> Timing >= 2.2.5 < 3.0.0
 
 ThreadMonitor
-    - - -> ESPressio Threads >= 3.1.5 < 4.0.0
+    - - -> Threads >= 3.1.5 < 4.0.0
 
 EventMonitor / EventConsole
-    - - -> ESPressio Event >= 6.0.1 < 7.0.0
-    - - -> ESPressio Serializable >= 0.10.3 < 1.0.0
+    - - -> Event >= 6.0.1 < 7.0.0
+    - - -> Serializable >= 0.11.0 < 1.0.0
+
+WiFiMonitor
+    - - -> WiFi >= 0.1.0 < 1.0.0
 ```
 
-The coordinated release generation is:
+Serial remains terminal/downstream. No upstream library should depend on Serial.
+
+# Interactive Command and Event tooling
+
+`CommandConsole` integrates ESPressio Command with a `Stream`/`Print` console. Domain-owned Command handlers, including WiFi's optional `WiFiCommandHandler`, automatically become usable from that console once registered with the shared `CommandRegistry`.
 
 ```text
-Observable    3.0.2
-Serializable  0.10.3
-Units         0.2.4
-Timing        2.2.5
-Threads       3.1.5
-Command       1.0.1
-Security      0.3.1
-Event         6.0.1
-Sockets       0.7.1
-ESP-Now       0.8.1
-Serial        0.7.3
+operator -> Serial Console -> CommandRegistry -> WiFiCommandHandler -> WiFiManager
 ```
 
-Command 1.0.0 introduces representation-neutral `CommandValue` values for structured invocations. Serial's Command monitor/console integrations are validated directly against that 1.x API. Sockets 0.7.0 preserves its existing Command protocol-v1 wire format while adapting typed values at its transport boundary. ESP-Now 0.8.0 retains the same wire/protocol compatibility as 0.7.x while hardening its receive-task stack and exposing stack-headroom diagnostics.
+This is deliberately transport-independent: a future Web console can invoke the same Command tree without changing WiFi.
 
-Event 6.0.0 contains only the generic Event mechanism plus integrations for libraries Event genuinely consumes itself. Command-, Security-, Sockets-, and ESP-Now-specific Event integrations remain supplied by their owning libraries, with Serial downstream of the complete graph.
-
-# Interactive Runtime Serializable Event Console
-
-Serial 0.7.2 retains the structured EventMonitor safety introduced in 0.5.1: bounded, allocation-free ESPB traversal from ESPressio Serializable 0.10.2 with fail-safe hexadecimal fallback for malformed or outside-limit payloads.
-
-Architecture:
-
-```text
-operator
-   |
-   v
-ESPressio Serial Console
-   |
-   | JSON
-   v
-ESPressio Serializable JsonArchive
-   |
-   | SerializationNode
-   v
-EventTransportManager runtime registry/factory
-   |
-   v
-concrete Serializable Event
-   |
-   v
-normal Queue / Stack dispatch
-   |
-   +--> local listeners
-   |
-   +--> configured Event transports
-```
-
-Serial does not create a second Event registry or a transport-specific remote-dispatch mechanism.
-
-## Initialize `EventConsole`
+`EventConsole` provides runtime discovery and JSON composition/dispatch of registered Serializable Events while reusing Event's normal registry, authorization and validation mechanisms.
 
 ```cpp
 #include <ESPressio_EventConsole.hpp>
@@ -152,102 +132,16 @@ ESPressio::Serial::Console console;
 ESPressio::Serial::EventConsole eventConsole;
 
 void setup() {
-    ::Serial.begin(115200);
-
     console.Initialize(::Serial, ::Serial);
     eventConsole.Initialize(console);
 }
 ```
 
-The Event integration requires Event 6.0.x and Serializable 0.10.x.
+Useful operator commands include `events`, `event describe`, `event queue`, `event stack`, and `event compose`. Runtime Event authorization remains safe-by-default and should be explicitly configured by the application.
 
-## Safe-by-default Event authorization
+# Logging and diagnostic history
 
-Runtime discovery does **not** automatically imply operator permission to dispatch every registered Event.
-
-The default policy is allow-list oriented. Explicitly authorize an Event type:
-
-```cpp
-eventConsole.AllowEvent<CameraShutterEvent>();
-```
-
-or by stable wire name:
-
-```cpp
-eventConsole.AllowEvent(
-    "flowduino.motor.move.v1"
-);
-```
-
-A controlled development environment can explicitly allow all registered types, while deny-list entries can still override broad access.
-
-This prevents a destructive administrative Event from becoming operator-triggerable merely because it was registered with Event Transport.
-
-## Discover registered Events
-
-At the console:
-
-```text
-events
-```
-
-or:
-
-```text
-event list
-```
-
-lists runtime-registered Serializable Event types, including useful schema/routing/constructibility/access information.
-
-Describe one type:
-
-```text
-event describe flowduino.motor.move.v1
-```
-
-The description comes from Event/Serializable runtime metadata rather than a duplicate Serial-maintained schema.
-
-## One-line JSON dispatch
-
-Queue:
-
-```text
-event queue flowduino.motor.move.v1 {"axis":"pan","position":45,"speed":20}
-```
-
-Stack:
-
-```text
-event stack flowduino.motor.move.v1 {"axis":"pan","position":45,"speed":20}
-```
-
-JSON is parsed into a representation-neutral `SerializationNode`, then Event's normal runtime factory applies schema migration, aliases, defaults, required fields, numeric constraints and validators.
-
-## Interactive composition
-
-```text
-event compose flowduino.motor.move.v1
-```
-
-can enter an interactive one-line payload flow. The enclosing Console and EventConsole both apply configured size bounds.
-
-## Validation diagnostics
-
-Construction failures expose the ordinary Serializable diagnostics, including property path, error code and message. Serial does not invent a separate validation layer.
-
-## Confirmation and dispatch controls
-
-Confirmation is enabled by default so an operator must explicitly accept a dispatch. Queue and Stack can also be enabled/disabled independently through `EventConsoleConfig`.
-
-## Audit logging
-
-`EventConsole` can send operator/security audit records to an existing `ILoggerSink`. Useful audit conditions include successful dispatch, denied dispatch, malformed JSON, unknown Event type, validation failure and dispatch failure.
-
-Payload content is not blindly duplicated into audit logs, avoiding accidental disclosure of sensitive values.
-
-# Logging
-
-The logging layer separates a log record from where it is displayed or retained.
+The logging layer separates records from sinks:
 
 ```cpp
 #include <ESPressio_Logging.hpp>
@@ -256,170 +150,33 @@ ESPressio::Serial::Logger<> logger;
 ESPressio::Serial::SerialLogSink serialSink(::Serial);
 ESPressio::Serial::DiagnosticRingBuffer<64> history;
 
-void setup() {
-    ::Serial.begin(115200);
-
-    logger.AddSink(serialSink);
-    logger.AddSink(history);
-
-    logger.SetMinimumLevel(
-        ESPressio::Serial::LogLevel::Debug
-    );
-
-    logger.Info("Application", "Boot complete");
-}
-```
-
-Supported levels are:
-
-```text
-Trace
-Debug
-Info
-Warning
-Error
-Critical
-Off
-```
-
-Multiple sinks may be active simultaneously. Serial output is one sink, not the logging architecture itself.
-
-A compile-time log-level configuration can remove lower-severity delivery paths while runtime filtering remains available through `SetMinimumLevel()`.
-
-# Diagnostic flight recorder
-
-`DiagnosticRingBuffer<Capacity>` is both a log sink and bounded in-memory history:
-
-```cpp
-ESPressio::Serial::DiagnosticRingBuffer<64> history;
+logger.AddSink(serialSink);
 logger.AddSink(history);
-
-// After a fault or operator request:
-history.Dump(::Serial);
+logger.Info("Application", "Boot complete");
 ```
 
-The oldest entry is overwritten when capacity is exhausted. This makes the ring buffer suitable for retaining the diagnostic context immediately preceding a failure without unbounded memory growth.
+`DiagnosticRingBuffer` retains bounded pre-failure history and can later be dumped to any Arduino `Print` implementation.
 
-# `SystemClockMonitor`
+# Other monitors
 
-```cpp
-#include <ESPressio_SystemClockMonitor.hpp>
+Serial provides opt-in monitors for Timing/System Clock, Threads, Event Transport, Command registry activity, Security lifecycle/failures, Sockets, ESP-NOW and WiFi. Each monitor observes the originating subsystem's native Observer surface rather than inventing a parallel lifecycle model.
 
-ESPressio::Serial::SystemClockMonitor<> clockMonitor;
-clockMonitor.Initialize(::Serial);
-```
-
-This monitor directly consumes ESPressio Timing's synchronous SystemClock observer surface. It reports meaningful time-setting, synchronization acceptance/rejection, synchronization-state, reset/configuration and callback scheduling/execution transitions.
-
-It does not require Event merely to display Timing diagnostics.
-
-# `ThreadMonitor`
-
-```cpp
-#include <ESPressio_ThreadMonitor.hpp>
-
-ESPressio::Serial::ThreadMonitor threadMonitor;
-threadMonitor.Initialize(::Serial);
-```
-
-`ThreadMonitor` observes process-wide ESPressio Threads infrastructure such as ThreadManager, garbage collection and termination dispatch lifecycle.
-
-Again, the monitor consumes Threads' native Observer surface rather than routing diagnostics through Event unnecessarily.
-
-# `EventMonitor`
-
-`EventMonitor` observes Event Transport transactions. It is not itself an Event Transport and it does not alter routing.
-
-```text
-Serializable Event
-        |
-        v
-EventTransportManager
-        |
-        +-----------------------> concrete transport
-        |
-        +--> transaction Observer
-                    |
-                    v
-              EventMonitor
-                    |
-                    v
-              Arduino Print
-```
-
-The monitor can therefore show outbound/inbound Event transport activity regardless of whether the concrete transport is ESP-NOW, UDP, TCP, WebSocket or another implementation.
-
-## Structured payload safety
-
-Structured Event payload diagnostics use bounded, allocation-free ESPB traversal from Serializable 0.10.2.
-
-Limits cover nesting depth, aggregate node count, collection size, names and strings. Malformed, truncated or outside-limit payloads fall back to bounded hexadecimal output instead of turning diagnostics into a fatal allocation/crash path.
-
-This is particularly important because diagnostic code must not make a stressed embedded system less reliable.
-
-# Other subsystem monitors
-
-Serial 0.7.2 also provides opt-in monitors for:
-
-```text
-CommandMonitor
-SecurityMonitor
-SocketWorkerMonitor
-SocketSecuritySessionMonitor
-ESPNowTransportMonitor
-```
-
-These observe the originating library's native Observable contract. Security and Socket monitors are instance-oriented because the application chooses the concrete `TransportSecurity`, `SocketWorker` or `SocketSecuritySession` instance to observe.
-
-`ESPNowTransportMonitor` observes the process-wide ESP-NOW transport lifecycle and peer/send activity. Serial 0.7.2 validates this monitor against ESPressio ESP-Now 0.8.0.
-
-# Aggregate `DiagnosticMonitor`
-
-Where the corresponding dependencies are present, `DiagnosticMonitor` can compose selected subsystem monitors behind one configuration surface.
-
-```cpp
-#include <ESPressio_DiagnosticMonitor.hpp>
-
-ESPressio::Serial::DiagnosticMonitor diagnostics;
-
-void setup() {
-    ::Serial.begin(115200);
-
-    ESPressio::Serial::DiagnosticMonitorConfig config;
-    config.SystemClock = true;
-    config.Threads = true;
-    config.Events = true;
-
-    diagnostics.Initialize(::Serial, config);
-}
-```
-
-The aggregate uses compile-time feature availability; it does not make every supported ESPressio library a mandatory package dependency.
-
-# Examples
-
-The repository's `examples/` directory contains application-shaped examples for the generic Console, EventConsole, loopback EventConsole/monitoring, logging and supported monitor integrations.
-
-The EventConsole loopback pattern is particularly useful for understanding the complete operator path:
-
-```text
-Serial JSON
-    -> runtime Event
-    -> local dispatch
-    -> Event Transport
-    -> inbound reconstruction
-    -> EventMonitor output
-```
+`EventMonitor` structured ESPB diagnostics use bounded, allocation-free traversal and fall back to bounded hexadecimal output for malformed or outside-limit payloads, keeping diagnostic code fail-safe on constrained devices.
 
 # Design principles
 
 - Serial is an operator/diagnostics layer, not a replacement for source-library APIs.
-- Monitoring should observe the originating subsystem directly wherever possible.
-- Interactive Event tooling should reuse Event/Serializable registries and validation.
 - Core Serial remains dependency-free.
 - Optional integrations remain opt-in and downstream.
+- Monitors consume ESPressio public types rather than lower-framework implementation types.
+- Sensitive configuration values are not emitted merely because diagnostics are enabled.
 - Diagnostic buffers and parsing limits are bounded for embedded reliability.
+- Command/Event operator surfaces reuse their authoritative registries and validation paths.
 
 # Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and notable changes.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).

@@ -1,133 +1,86 @@
-# ESPressio Dependency Chart — Current Released Generation
+# ESPressio Dependency Chart — Serial 0.8.0 Candidate
 
 ![ESPressio Library Dependency Chart](ESPRESSIO_DEPENDENCY_CHART.svg)
 
-This document is the canonical snapshot of the current released ESPressio dependency generation. Arrows point from the consuming library to the library it consumes.
+Arrows point from the consuming library to the library it consumes. Serial remains the terminal/downstream operator layer.
 
-- **Required** — the dependency is part of the library's normal/core contract.
-- **Opt-in** — the dependency is introduced only when the corresponding integration/header is selected.
-
-## Released generation
+## Coordinated candidate/released generation
 
 ```text
 Observable    3.0.2
-Serializable  0.10.3
+Serializable  0.11.0   candidate merged, release pending
 Units         0.2.4
 Timing        2.2.5
 Threads       3.1.5
 Event         6.0.1
 Command       1.0.1
-Security      0.3.1
+Security      0.4.0    candidate merged, release pending
+Persistence   0.3.0    candidate merged, release pending
 Sockets       0.7.1
 ESP-Now       0.8.1
-Serial        0.7.3
+WiFi          0.1.0    candidate
+Serial        0.8.0    candidate
 ```
 
-## Required dependencies
+## Serial core
 
 ```text
-Observable 3.0.2
+Serial core 0.8.0
     -> none
-
-Serializable 0.10.3
-    -> none
-
-Units 0.2.4
-    -> none
-
-Timing 2.2.5
-    -> Units >= 0.2.3 < 1.0.0
-    -> Observable >= 3.0.1 < 4.0.0
-
-Threads 3.1.5
-    -> Timing >= 2.2.5 < 3.0.0
-    -> Observable >= 3.0.1 < 4.0.0
-
-Event 6.0.1
-    -> Threads >= 3.1.5 < 4.0.0
-    -> Timing >= 2.2.5 < 3.0.0
-    -> Observable >= 3.0.1 < 4.0.0
-
-Command 1.0.1
-    -> Observable >= 3.0.1 < 4.0.0
-
-Security 0.3.1
-    -> Observable >= 3.0.1 < 4.0.0
-
-Sockets 0.7.1
-    -> Observable >= 3.0.1 < 4.0.0
-
-ESP-Now 0.8.1
-    -> Timing >= 2.2.5 < 3.0.0
-    -> Observable >= 3.0.1 < 4.0.0
-
-Serial 0.7.3
-    -> none in the core package
 ```
 
-## Opt-in integrations
+## Opt-in Serial integrations
 
 ```text
-Units
-    - - -> Serializable >= 0.10.3 < 1.0.0
-            Serializable Unit variants
-
-Event
-    - - -> Serializable >= 0.10.3 < 1.0.0
-            Serializable Events / Event Transport
-
-Command
-    - - -> Event >= 6.0.1 < 7.0.0
-            Command-owned Event types / CommandRegistryEventBridge
-
-Security
-    - - -> Event >= 6.0.1 < 7.0.0
-            Security-owned Event types / TransportSecurityEventBridge
-
-Sockets
-    - - -> Event >= 6.0.1 < 7.0.0
+CommandConsole / CommandMonitor
     - - -> Command >= 1.0.1 < 2.0.0
-    - - -> Security >= 0.3.1 < 1.0.0
-    - - -> Timing >= 2.2.5 < 3.0.0
 
-ESP-Now
-    - - -> Event >= 6.0.1 < 7.0.0
-    - - -> Command >= 1.0.1 < 2.0.0
-    - - -> Security >= 0.3.1 < 1.0.0
+SecurityMonitor
+    - - -> Security >= 0.4.0 < 1.0.0
 
-Serial
-    - - -> Command >= 1.0.1 < 2.0.0
-    - - -> Security >= 0.3.1 < 1.0.0
+SocketWorkerMonitor / SocketSecuritySessionMonitor
     - - -> Sockets >= 0.7.1 < 1.0.0
+
+ESPNowTransportMonitor
     - - -> ESP-Now >= 0.8.1 < 1.0.0
-    - - -> Event >= 6.0.1 < 7.0.0
-    - - -> Serializable >= 0.10.3 < 1.0.0
+
+SystemClockMonitor
     - - -> Timing >= 2.2.5 < 3.0.0
+
+ThreadMonitor
     - - -> Threads >= 3.1.5 < 4.0.0
+
+EventMonitor / EventConsole
+    - - -> Event >= 6.0.1 < 7.0.0
+    - - -> Serializable >= 0.11.0 < 1.0.0
+
+WiFiMonitor
+    - - -> WiFi >= 0.1.0 < 1.0.0
 ```
 
-`JsonCommandInterpreter` optionally consumes external **ArduinoJson 7.x**. ArduinoJson is not an ESPressio library and is therefore not represented as an ESPressio graph edge.
+WiFi itself requires Observable and Serializable and optionally consumes Persistence/Security/Event/Command. Those remain WiFi-owned edges; Serial does not duplicate them simply because it can observe WiFi.
+
+```text
+WiFi 0.1.0
+    -> Observable >= 3.0.2 < 4.0.0
+    -> Serializable >= 0.11.0 < 1.0.0
+    - - -> Persistence >= 0.3.0 < 1.0.0
+    - - -> Security >= 0.4.0 < 1.0.0
+    - - -> Event >= 6.0.1 < 7.0.0
+    - - -> Command >= 1.0.1 < 2.0.0
+```
 
 ## Dependency-direction invariants
 
-Event 6.0.1 owns the generic Event mechanism. Domain-specific Event types and bridges belong to the lowest-order library that owns the represented concept without introducing a reverse dependency:
-
 ```text
-Command  - - -> Event
-Security - - -> Event
-Sockets  - - -> Event
-ESP-Now  - - -> Event
+Serial - - -> WiFi
+WiFi -> Serial   NONE
 
-Event -> Command   NONE
-Event -> Security  NONE
-Event -> Sockets   NONE
-Event -> ESP-Now   NONE
+Serial - - -> Security
+Security -> Serial   NONE
+
+Serial - - -> Event
+Event -> Serial   NONE
 ```
 
-Timing and Threads Event bridges remain in Event because Event already requires Timing and Threads for its own responsibilities; moving those bridges upstream would create reverse dependencies.
-
-Serial remains terminal/downstream. No upstream ESPressio library should depend on Serial.
-
-## Standalone repositories
-
-ESPressio Tree and ESPressio WiFi are not dependency edges in the coordinated graph above. Tree is a standalone generic component. WiFi currently has no implemented public API and must not be treated as a dependency of the released stack merely because legacy package metadata exists in its repository.
+Domain-specific Event and Command adapters remain in their owning libraries. Web is higher-order and is not introduced into either WiFi or Serial by this feature.
