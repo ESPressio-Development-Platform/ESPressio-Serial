@@ -5,7 +5,7 @@
 - Added optional `ESPressio_WiFiMonitor.hpp` integration targeting ESPressio WiFi 0.1.0.
 - Added `WiFiMonitor` as an `IWiFiObserver` that renders overall mode, independent AP/Client state transitions, scan lifecycle/results, AP station joins/leaves, and Client IP acquisition/loss to an injected Arduino `Print`.
 - Added `PrintStatus()` for an on-demand compact WiFi runtime snapshot.
-- Added host coverage verifying WiFi lifecycle output and explicitly verifying persisted/configured passwords are never emitted by the monitor.
+- Added host coverage verifying WiFi lifecycle output and explicitly verifying configured passwords are never emitted by the monitor.
 - Added ESP32 compile validation against the WiFi 0.1.0 candidate surface.
 
 ### Changed
@@ -144,4 +144,78 @@
 
 ### Fixed
 
-- EventMonitor structured payload rendering now uses the bounded allocation-free BinaryArchive traversal path and fails safely to bounded hex output when payload data is malformed, truncated, or outside configured limits.
+- Replaced EventMonitor's tree-building `BinaryArchive::Load()` diagnostic path with bounded, allocation-free ESPB traversal from ESPressio Serializable 0.10.2, preventing valid payload diagnostics from requiring a second heap-backed `SerializationNode` tree.
+- Hardened structured `EventMonitor` payload diagnostics so malformed, truncated, excessively nested, or otherwise unreasonable Event Transport payloads are rejected under monitor-specific decode limits.
+- Added fail-safe fallback from `Structured` to bounded `Hex` output whenever a payload fails structured validation or exceeds the configured monitor limits.
+- Updated Event Monitor's optional Serializable baseline to ESPressio Serializable >= 0.10.2 < 1.0.0, consuming the bounded/allocation-free BinaryArchive facilities introduced for ESPressio-Development-Platform/ESPressio-Serializable#2.
+
+### Added
+
+- Added `MaximumStructuredNodes` to `EventMonitorConfig` alongside the existing collection, string, and nesting limits.
+- Added deterministic malformed/deep/random payload regression and stress coverage for the EventMonitor structured-payload validation path.
+- Added ESP32 compile validation for `EventMonitor` against the coordinated dependency-refresh candidates: Units 0.2.3, Timing 2.2.4, Threads 3.1.4, ESP-Now 0.5.2, Event 5.8.2, and released Serializable 0.10.2.
+
+### Changed
+
+- Raised the current optional Event integration baseline to ESPressio Event >= 5.8.2 < 6.0.0.
+- Raised the current optional ESP-Now monitor baseline to ESPressio ESP-Now >= 0.5.2 < 1.0.0.
+- Updated current documentation and CI to consume the completed Serializable 0.10.2 dependency cascade rather than intermediate bug-fix commits.
+- Serializable 0.10.2 also resolves the strict-build `-Wmisleading-indentation` warning exposed by Serial's warnings-as-errors host validation.
+
+### Compatibility
+
+- Core Serial remains dependency-free.
+- EventMonitor remains opt-in.
+- Existing structured output remains JSON-like and source-compatible for payloads that validate successfully.
+
+## 0.5.0
+
+- Added opt-in `CommandMonitor` for ESPressio Command 0.3.x registry lifecycle observation.
+- Added opt-in `SecurityMonitor` for ESPressio Security 0.2.x configuration, session, replay and failure observation.
+- Added opt-in `SocketWorkerMonitor` and `SocketSecuritySessionMonitor` for ESPressio Sockets 0.5.x lifecycle observation.
+- Added opt-in `ESPNowTransportMonitor` for ESPressio ESP-Now 0.5.x transport, peer and send lifecycle observation.
+- Extended `DiagnosticMonitor` with optional Command and ESP-Now monitoring while preserving its existing default behavior.
+- Updated the validated optional ESPressio Event integration baseline to Event 5.8.0 within the 5.x line.
+- Preserved Serial's dependency-free core: all new monitors are selected explicitly and observe the originating subsystem rather than duplicating its lifecycle semantics.
+
+## 0.4.0
+
+- Added optional ESPressio Command 0.2.x integration through `CommandConsole`.
+- Added a Command-backed EventConsole initialization path and registered `event`/`events` command trees.
+- Preserved the legacy Console registration path for backward compatibility.
+- Added scoped Command registration cleanup during EventConsole shutdown.
+- Updated integration guidance for the current ESPressio dependency generation.
+
+# Changelog
+
+## 0.7.3 — 2026-08-22
+
+### Changed
+- Published the post-migration ESPressio Serial package generation from `ESPressio-Development-Platform`.
+- Raised optional Command to `>=1.0.1 <2.0.0`, Security to `>=0.3.1 <1.0.0`, Sockets to `>=0.7.1 <1.0.0`, ESP-Now to `>=0.8.1 <1.0.0`, Event to `>=6.0.1 <7.0.0`, Serializable to `>=0.10.3 <1.0.0`, Timing to `>=2.2.5 <3.0.0`, and Threads to `>=3.1.5 <4.0.0`.
+- Updated package metadata, operator/integration documentation, CI validation, and dependency documentation for the complete migrated release generation.
+
+### Compatibility
+- No Serial public API or runtime behaviour changes are introduced by this repository-relocation patch release. Core Serial remains free of mandatory ESPressio dependencies.
+
+## 0.3.3 — 2026-08-20
+
+### Changed
+- Updated the validated optional ESPressio Event integration baseline from Event 5.6.2 to Event 5.7.1 within the 5.x line.
+- Updated referenced Timing and Threads baselines to Timing 2.2.2 and Threads 3.1.2, matching the cascaded dependency-refresh release chain.
+- Updated the validated Serializable baseline to 0.10.0 for Event Monitor/EventConsole integrations that consume Serializable facilities.
+- Updated package metadata for Serial 0.3.3.
+- Core Serial, Console, logging, and diagnostics remain dependency-free unless the corresponding ESPressio integration is explicitly selected.
+- No Serial public interfaces or runtime semantics changed.
+
+## 0.3.2 — 2026-08-19
+
+### Changed
+- Updated active ESPressio dependency baselines to the latest released versions available on 2026-08-19.
+- Bounded dependency compatibility to the current major version so future breaking major releases are not selected automatically.
+- Updated optional ESPressio Event integrations to require Event 5.6.2 or newer within the 5.x line.
+- Updated referenced Timing and Threads integration baselines to Timing 2.2.1 and Threads 3.1.1, matching the dependency-refresh release chain.
+
+All notable changes to this project are documented in this file.
+
+The structure follows the principles of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
