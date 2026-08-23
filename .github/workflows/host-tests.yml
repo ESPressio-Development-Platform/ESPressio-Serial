@@ -22,18 +22,25 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Observable
           ref: 3.0.2
           path: deps/ESPressio-Observable
-      - name: Checkout ESPressio Serializable 0.10.3
+      - name: Checkout ESPressio Serializable 0.11.0 candidate
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Serializable
-          ref: 0.10.3
+          ref: main
           path: deps/ESPressio-Serializable
+      - name: Checkout ESPressio WiFi 0.1.0 candidate
+        uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-WiFi
+          ref: feature/9-wifi-0.1.0-redesign
+          path: deps/ESPressio-WiFi
       - name: Configure
         run: >-
           cmake -S tests -B build
           -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
           -DESPRESSIO_OBSERVABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Observable/src"
           -DESPRESSIO_SERIALIZABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Serializable/src"
+          -DESPRESSIO_WIFI_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-WiFi/src"
       - name: Build
         run: cmake --build build --parallel
       - name: Test
@@ -70,11 +77,11 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Threads
           ref: 3.1.5
           path: project/dependencies/ESPressio-Threads
-      - name: Checkout ESPressio Serializable 0.10.3
+      - name: Checkout ESPressio Serializable 0.11.0 candidate
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Serializable
-          ref: 0.10.3
+          ref: main
           path: project/dependencies/ESPressio-Serializable
       - name: Checkout ESPressio Event 6.0.1
         uses: actions/checkout@v4
@@ -88,11 +95,11 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Command
           ref: 1.0.1
           path: project/dependencies/ESPressio-Command
-      - name: Checkout ESPressio Security 0.3.1
+      - name: Checkout ESPressio Security 0.4.0 candidate
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Security
-          ref: 0.3.1
+          ref: main
           path: project/dependencies/ESPressio-Security
       - name: Checkout ESPressio Sockets 0.7.1
         uses: actions/checkout@v4
@@ -106,6 +113,12 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-ESP-Now
           ref: 0.8.1
           path: project/dependencies/ESPressio-ESP-Now
+      - name: Checkout ESPressio WiFi 0.1.0 candidate
+        uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-WiFi
+          ref: feature/9-wifi-0.1.0-redesign
+          path: project/dependencies/ESPressio-WiFi
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -117,7 +130,7 @@ jobs:
           mkdir -p project/compile/src
           cat > project/compile/platformio.ini <<'EOF'
           [env:esp32]
-          platform = espressif32
+          platform = https://github.com/pioarduino/platform-espressif32/releases/download/55.03.311/platform-espressif32.zip
           board = esp32dev
           framework = arduino
           build_flags =
@@ -127,6 +140,7 @@ jobs:
               -I../dependencies/ESPressio-Security/src
               -I../dependencies/ESPressio-Sockets/src
               -I../dependencies/ESPressio-ESP-Now/src
+              -I../dependencies/ESPressio-WiFi/src
           build_unflags =
               -std=gnu++11
               -fno-rtti
@@ -149,9 +163,10 @@ jobs:
           #include <ESPressio_SocketSecuritySessionMonitor.hpp>
           #include <ESPressio_ESPNowTransportMonitor.hpp>
           #include <ESPressio_EventMonitor.hpp>
+          #include <ESPressio_WiFiMonitor.hpp>
           #include <event/ESPressio_EventMonitorPayloadSafety.hpp>
           void setup() {}
           void loop() {}
           EOF
-      - name: Compile ESP32 Observable and Event monitors
+      - name: Compile ESP32 Observable, Event and WiFi monitors
         run: pio run -d project/compile
