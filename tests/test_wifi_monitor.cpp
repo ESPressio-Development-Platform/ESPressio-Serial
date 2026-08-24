@@ -44,6 +44,35 @@ int main(){
     assert(wifi.Poll()==WiFi::WiFiStatus::Success);
 
     platform.scanReady=true; platform.state.Scan=WiFi::ScanState::Complete; platform.state.Revision++; assert(wifi.Poll()==WiFi::WiFiStatus::Success);
+
+    monitor.OnWiFiModeChanged(WiFi::WiFiMode::AccessPointClient, WiFi::WiFiMode::APUntilClient);
+
+    WiFi::APUntilClientRuntimeState fallbackBefore;
+    fallbackBefore.State=WiFi::APUntilClientState::SeekingClient;
+    WiFi::APUntilClientRuntimeState fallbackAfter;
+    fallbackAfter.State=WiFi::APUntilClientState::FallbackAccessPoint;
+    fallbackAfter.FallbackAccessPointActive=true;
+    fallbackAfter.NextRetryMilliseconds=12345;
+    monitor.OnAPUntilClientStateChanged(fallbackBefore,fallbackAfter);
+
+    WiFi::ClientNetworkSelectionRuntimeState selectionBefore;
+    selectionBefore.State=WiFi::ClientNetworkSelectionState::Scanning;
+    WiFi::ClientNetworkSelectionRuntimeState selectionAfter;
+    selectionAfter.State=WiFi::ClientNetworkSelectionState::Connecting;
+    selectionAfter.SelectedSSID="Home";
+    selectionAfter.SelectedPriority=300;
+    selectionAfter.EligibleCandidateCount=2;
+    monitor.OnClientNetworkSelectionChanged(selectionBefore,selectionAfter);
+
+    WiFi::ClientNetworkCandidate selected;
+    selected.SSID="Home";
+    selected.Priority=300;
+    selected.RSSI=-41;
+    selected.Channel=6;
+    selected.BSSID.Octets={{0x10,0x20,0x30,0x40,0x50,0x60}};
+    monitor.OnClientNetworkSelected(selected);
+    monitor.OnClientNoKnownNetworkAvailable();
+
     monitor.PrintStatus(wifi);
 
     assert(output.text.find("[ESPressio WiFi]")!=std::string::npos);
@@ -53,6 +82,11 @@ int main(){
     assert(output.text.find("reconnect-attempt=2")!=std::string::npos);
     assert(output.text.find("disconnecting")!=std::string::npos);
     assert(output.text.find("disconnected")!=std::string::npos);
+    assert(output.text.find("ap-until-client")!=std::string::npos);
+    assert(output.text.find("APUntilClient seeking-client -> fallback-access-point")!=std::string::npos);
+    assert(output.text.find("Selection scanning -> connecting selected=Home priority=300 candidates=2")!=std::string::npos);
+    assert(output.text.find("NetworkSelected ssid=Home priority=300 rssi=-41 channel=6 bssid=10:20:30:40:50:60")!=std::string::npos);
+    assert(output.text.find("NoKnownNetworkAvailable")!=std::string::npos);
     assert(output.text.find("DO-NOT-PRINT")==std::string::npos);
     assert(output.text.find("ALSO-SECRET")==std::string::npos);
     monitor.Shutdown(); assert(!monitor.IsInitialized());

@@ -104,6 +104,24 @@ public:
             );
     }
 
+    std::size_t print(
+        long long value
+    ) {
+        return
+            print(
+                std::to_string(value)
+            );
+    }
+
+    std::size_t print(
+        unsigned long long value
+    ) {
+        return
+            print(
+                std::to_string(value)
+            );
+    }
+
     std::size_t println() {
         return print("\n");
     }
