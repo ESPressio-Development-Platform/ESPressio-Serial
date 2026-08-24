@@ -1,12 +1,12 @@
 {
     "name": "ESPressio-Serial",
-    "description": "Serial and console-oriented components for ESPressio, including opt-in Observable, Command, Event and WiFi integrations.",
+    "description": "Serial and console-oriented components for ESPressio, including opt-in Observable, Command, Event, Security, Sockets, ESP-Now and WiFi integrations.",
     "keywords": "esp32,serial,console,monitor,event,transport,diagnostics,observable,wifi,espressio",
     "authors": {"name":"Simon J. Stuart","maintainer":true,"url":"https://espressio.org"},
     "homepage": "https://espressio.org",
     "build": {"flags":["-DESPRESSIO_SERIAL"]},
     "repository": {"type":"git","url":"https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git"},
-    "version": "0.8.0",
+    "version": "0.8.1",
     "license": "Apache-2.0",
     "frameworks": "arduino",
     "platforms": "espressif32"
