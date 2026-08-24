@@ -131,6 +131,7 @@ jobs:
           EOF
           cat > project/compile/src/main.cpp <<'EOF'
           #include <Arduino.h>
+          #include <Network.h>
           #include <WiFi.h>
           #include <ESPressio_CommandMonitor.hpp>
           #include <ESPressio_SecurityMonitor.hpp>
