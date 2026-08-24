@@ -89,7 +89,11 @@ jobs:
           cat > project/compile/network_include.py <<'EOF'
           Import("env")
           framework = env.PioPlatform().get_package_dir("framework-arduinoespressif32")
-          env.Append(CPPPATH=[framework + "/libraries/Network/src", framework + "/libraries/WiFi/src"])
+          env.Append(CPPPATH=[
+              framework + "/libraries/Network/src",
+              framework + "/libraries/WiFi/src",
+              framework + "/libraries/NetworkClientSecure/src"
+          ])
           EOF
           cat > project/compile/platformio.ini <<'EOF'
           [env:esp32]
