@@ -10,11 +10,11 @@ jobs:
     steps:
       - name: Checkout Serial
         uses: actions/checkout@v4
-      - name: Checkout ESPressio Command 1.0.1
+      - name: Checkout ESPressio Command 1.0.3
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Command
-          ref: 1.0.1
+          ref: 1.0.3
           path: deps/ESPressio-Command
       - name: Checkout ESPressio Observable 3.0.2
         uses: actions/checkout@v4
@@ -22,17 +22,17 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Observable
           ref: 3.0.2
           path: deps/ESPressio-Observable
-      - name: Checkout ESPressio Serializable 0.11.0 candidate
+      - name: Checkout ESPressio Serializable 0.11.3
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Serializable
-          ref: main
+          ref: 0.11.3
           path: deps/ESPressio-Serializable
-      - name: Checkout ESPressio WiFi 0.1.0 candidate
+      - name: Checkout ESPressio WiFi 0.2.0
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-WiFi
-          ref: feature/9-wifi-0.1.0-redesign
+          ref: 0.2.0
           path: deps/ESPressio-WiFi
       - name: Configure
         run: >-
@@ -53,72 +53,30 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: project/ESPressio-Serial
-      - name: Checkout ESPressio Observable 3.0.2
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: 3.0.2
-          path: project/dependencies/ESPressio-Observable
-      - name: Checkout ESPressio Units 0.2.4
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Units
-          ref: 0.2.4
-          path: project/dependencies/ESPressio-Units
-      - name: Checkout ESPressio Timing 2.2.5
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: 2.2.5
-          path: project/dependencies/ESPressio-Timing
-      - name: Checkout ESPressio Threads 3.1.5
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Threads
-          ref: 3.1.5
-          path: project/dependencies/ESPressio-Threads
-      - name: Checkout ESPressio Serializable 0.11.0 candidate
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Serializable
-          ref: main
-          path: project/dependencies/ESPressio-Serializable
-      - name: Checkout ESPressio Event 6.0.1
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Event
-          ref: 6.0.1
-          path: project/dependencies/ESPressio-Event
-      - name: Checkout ESPressio Command 1.0.1
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Command
-          ref: 1.0.1
-          path: project/dependencies/ESPressio-Command
-      - name: Checkout ESPressio Security 0.4.0 candidate
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Security
-          ref: main
-          path: project/dependencies/ESPressio-Security
-      - name: Checkout ESPressio Sockets 0.7.1
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Sockets
-          ref: 0.7.1
-          path: project/dependencies/ESPressio-Sockets
-      - name: Checkout ESPressio ESP-Now 0.8.1
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-ESP-Now
-          ref: 0.8.1
-          path: project/dependencies/ESPressio-ESP-Now
-      - name: Checkout ESPressio WiFi 0.1.0 candidate
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-WiFi
-          ref: feature/9-wifi-0.1.0-redesign
-          path: project/dependencies/ESPressio-WiFi
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: 3.0.2, path: project/dependencies/ESPressio-Observable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: 0.11.3, path: project/dependencies/ESPressio-Serializable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: 0.2.7, path: project/dependencies/ESPressio-Units}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: 2.2.8, path: project/dependencies/ESPressio-Timing}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Threads, ref: 3.1.7, path: project/dependencies/ESPressio-Threads}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Event, ref: 6.0.3, path: project/dependencies/ESPressio-Event}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Command, ref: 1.0.3, path: project/dependencies/ESPressio-Command}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Security, ref: 0.4.2, path: project/dependencies/ESPressio-Security}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Persistence, ref: 0.3.2, path: project/dependencies/ESPressio-Persistence}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Sockets, ref: 0.7.3, path: project/dependencies/ESPressio-Sockets}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-ESP-Now, ref: 0.8.3, path: project/dependencies/ESPressio-ESP-Now}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-WiFi, ref: 0.2.0, path: project/dependencies/ESPressio-WiFi}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -138,6 +96,7 @@ jobs:
               -frtti
               -I../dependencies/ESPressio-Command/src
               -I../dependencies/ESPressio-Security/src
+              -I../dependencies/ESPressio-Persistence/src
               -I../dependencies/ESPressio-Sockets/src
               -I../dependencies/ESPressio-ESP-Now/src
               -I../dependencies/ESPressio-WiFi/src
@@ -147,11 +106,17 @@ jobs:
           lib_ldf_mode = deep+
           lib_deps =
               ../dependencies/ESPressio-Observable
+              ../dependencies/ESPressio-Serializable
               ../dependencies/ESPressio-Units
               ../dependencies/ESPressio-Timing
               ../dependencies/ESPressio-Threads
-              ../dependencies/ESPressio-Serializable
               ../dependencies/ESPressio-Event
+              ../dependencies/ESPressio-Command
+              ../dependencies/ESPressio-Security
+              ../dependencies/ESPressio-Persistence
+              ../dependencies/ESPressio-Sockets
+              ../dependencies/ESPressio-ESP-Now
+              ../dependencies/ESPressio-WiFi
               ../ESPressio-Serial
           EOF
           cat > project/compile/src/main.cpp <<'EOF'
@@ -168,5 +133,5 @@ jobs:
           void setup() {}
           void loop() {}
           EOF
-      - name: Compile ESP32 Observable, Event and WiFi monitors
+      - name: Compile ESP32 monitor integrations against released cascade
         run: pio run -d project/compile
