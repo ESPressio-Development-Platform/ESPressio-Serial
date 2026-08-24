@@ -1,3 +1,30 @@
+## 0.8.1 — 2026-08-24
+
+### Changed
+
+- Advanced Serial to 0.8.1 as the terminal dependency-maintenance release for the completed Serializable 0.11.3 cascade.
+- Updated host validation to released Command 1.0.3, Observable 3.0.2, Serializable 0.11.3 and WiFi 0.2.0.
+- Updated ESP32 monitor integration validation to released Observable 3.0.2, Serializable 0.11.3, Units 0.2.7, Timing 2.2.8, Threads 3.1.7, Event 6.0.3, Command 1.0.3, Security 0.4.2, Persistence 0.3.2, Sockets 0.7.3, ESP-Now 0.8.3 and WiFi 0.2.0.
+- Removed candidate/development branch references from Serial CI; release validation now uses released ESPressio tags only.
+- Updated package, Arduino and component version metadata for Serial 0.8.1.
+- Corrected stale component metadata that still reported Serial 0.7.1.
+- Updated README and dependency documentation for the completed released generation.
+
+### Architecture
+
+- Core Serial remains dependency-free.
+- Command, Security, Sockets, ESP-Now, Timing, Threads, Event, Serializable and WiFi integrations remain opt-in.
+- Serial remains the terminal/downstream diagnostics and operator layer; no upstream ESPressio library acquires a Serial dependency.
+
+### Compatibility
+
+- No Serial public API or runtime behaviour changes are introduced by this release.
+- Existing Console, logging, EventConsole, EventMonitor, CommandMonitor, SecurityMonitor, Socket monitors, ESP-Now monitor, Timing/Thread monitors and WiFiMonitor behaviour remain unchanged.
+
+### Tracking
+
+- Closes #35.
+
 ## 0.8.0 — 2026-08-23
 
 ### Added

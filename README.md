@@ -4,9 +4,27 @@ Serial, console, logging and diagnostics components for the ESPressio Developmen
 
 ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It observes and controls other ESPressio subsystems without forcing Serial concerns back into those libraries.
 
-## Current Version — 0.8.0
+## Current Version — 0.8.1
 
-0.8.0 adds the optional **ESPressio WiFi monitor**. Core Serial still has no mandatory ESPressio dependencies; every subsystem integration is selected explicitly.
+0.8.1 is a dependency-maintenance release aligning every optional Serial integration with the completed released Serializable 0.11.3 cascade. Core Serial still has no mandatory ESPressio dependencies; every subsystem integration is selected explicitly.
+
+Validated generation:
+
+```text
+Observable    3.0.2
+Serializable  0.11.3
+Units         0.2.7
+Timing        2.2.8
+Threads       3.1.7
+Event         6.0.3
+Command       1.0.3
+Security      0.4.2
+Persistence   0.3.2
+Sockets       0.7.3
+ESP-Now       0.8.3
+WiFi          0.2.0
+Serial        0.8.1
+```
 
 ## Namespace
 
@@ -47,7 +65,7 @@ Typical output is intentionally compact and keeps AP and Client contexts separat
 [ESPressio WiFi] APStationConnected station=94:B5:55:19:1D:9C
 ```
 
-An on-demand runtime snapshot is available without enabling any periodic noise:
+An on-demand runtime snapshot is available without enabling periodic noise:
 
 ```cpp
 wifiMonitor.PrintStatus(wifi);
@@ -86,29 +104,29 @@ Optional integrations include:
 
 ```text
 CommandConsole / CommandMonitor
-    - - -> Command >= 1.0.1 < 2.0.0
+    - - -> Command >= 1.0.3 < 2.0.0
 
 SecurityMonitor
-    - - -> Security >= 0.4.0 < 1.0.0
+    - - -> Security >= 0.4.2 < 1.0.0
 
 SocketWorkerMonitor / SocketSecuritySessionMonitor
-    - - -> Sockets >= 0.7.1 < 1.0.0
+    - - -> Sockets >= 0.7.3 < 1.0.0
 
 ESPNowTransportMonitor
-    - - -> ESP-Now >= 0.8.1 < 1.0.0
+    - - -> ESP-Now >= 0.8.3 < 1.0.0
 
 SystemClockMonitor
-    - - -> Timing >= 2.2.5 < 3.0.0
+    - - -> Timing >= 2.2.8 < 3.0.0
 
 ThreadMonitor
-    - - -> Threads >= 3.1.5 < 4.0.0
+    - - -> Threads >= 3.1.7 < 4.0.0
 
 EventMonitor / EventConsole
-    - - -> Event >= 6.0.1 < 7.0.0
-    - - -> Serializable >= 0.11.0 < 1.0.0
+    - - -> Event >= 6.0.3 < 7.0.0
+    - - -> Serializable >= 0.11.3 < 1.0.0
 
 WiFiMonitor
-    - - -> WiFi >= 0.1.0 < 1.0.0
+    - - -> WiFi >= 0.2.0 < 1.0.0
 ```
 
 Serial remains terminal/downstream. No upstream library should depend on Serial.
@@ -172,6 +190,7 @@ Serial provides opt-in monitors for Timing/System Clock, Threads, Event Transpor
 - Sensitive configuration values are not emitted merely because diagnostics are enabled.
 - Diagnostic buffers and parsing limits are bounded for embedded reliability.
 - Command/Event operator surfaces reuse their authoritative registries and validation paths.
+- CI and integration validation use released ESPressio tags only; development branches are not release dependencies.
 
 # Changelog
 
