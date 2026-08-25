@@ -45,7 +45,8 @@ jobs:
           grep -q 'CommandResponseRouteRegistry' src/command-console/ESPressio_CommandConsole.hpp
           grep -q 'CommandRequestEnvelope' src/command-console/ESPressio_CommandConsole.hpp
           grep -q 'CommandResult Execute' src/command-console/ESPressio_CommandConsole.hpp
-          if grep -q '_registry->Invoke(std::string(line))' src/command-console/ESPressio_CommandConsole.hpp; then
+          HANDLE_LINE_BODY="$(sed -n '/bool HandleLine(std::string_view line)/,/^    }/p' src/command-console/ESPressio_CommandConsole.hpp)"
+          if grep -q '_registry->Invoke' <<<"${HANDLE_LINE_BODY}"; then
             echo 'Serial interceptor regressed to synchronous Command execution.' >&2
             exit 1
           fi
