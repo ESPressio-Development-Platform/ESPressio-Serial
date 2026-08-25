@@ -12,6 +12,8 @@ jobs:
         with:
           path: project/ESPressio-Serial
       - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: feature/1-task-execution, path: project/dependencies/ESPressio-Task}
+      - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: 3.0.2, path: project/dependencies/ESPressio-Observable}
       - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: optimisation/25-psram-buffers, path: project/dependencies/ESPressio-Serializable}
@@ -42,6 +44,7 @@ jobs:
           build_unflags = -std=gnu++11 -fno-rtti
           lib_ldf_mode = deep+
           lib_deps =
+              ../dependencies/ESPressio-Task
               ../dependencies/ESPressio-Observable
               ../dependencies/ESPressio-Serializable
               ../dependencies/ESPressio-Units
