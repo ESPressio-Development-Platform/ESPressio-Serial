@@ -19,12 +19,21 @@ public:
           ),
           _output(output) {
         SetStartOnInitialize(false);
-        RegisterAll();
+    }
+
+    Threads::ThreadInitializationStatus Initialize() {
+        if (!_listenersRegistered) {
+            RegisterAll();
+            _listenersRegistered = true;
+        }
+
+        return Event::EventThread::Initialize();
     }
 
 private:
     Print& _output;
     std::vector<Event::EventListenerHandlePtr> _handles;
+    bool _listenersRegistered = false;
 
     void Prefix() { _output.print("[ESPressio WiFi Event] "); }
 
