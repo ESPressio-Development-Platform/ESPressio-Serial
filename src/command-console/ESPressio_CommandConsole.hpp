@@ -1,14 +1,20 @@
 #pragma once
 
 #if !__has_include(<ESPressio_Command.hpp>)
-#error "ESPressio CommandConsole requires ESPressio Command >= 0.2.0 < 1.0.0."
+#error "ESPressio CommandConsole requires ESPressio Command."
 #endif
 
+#include <atomic>
+#include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <Arduino.h>
 #include <ESPressio_Command.hpp>
+#include <ESPressio_CommandEnvelope.hpp>
+#include <ESPressio_CommandEvents.hpp>
+#include <ESPressio_CommandResponseRoute.hpp>
 
 #include "../console/ESPressio_Console.hpp"
 
@@ -16,14 +22,56 @@ namespace ESPressio::Serial {
 
 class CommandConsole final {
 private:
+    class ResponseRoute final : public Command::ICommandResponseRoute {
+        CommandConsole* _owner = nullptr;
+
+    public:
+        explicit ResponseRoute(CommandConsole& owner)
+            : _owner(&owner) {
+        }
+
+        void Detach() {
+            _owner = nullptr;
+        }
+
+        bool SendCommandResponse(
+            const Command::CommandOriginAddress&,
+            const Command::CommandResponseEnvelope& response
+        ) override {
+            if (_owner == nullptr) {
+                return false;
+            }
+            _owner->PrintResponse(response);
+            return true;
+        }
+    };
+
     Console* _console = nullptr;
     Command::CommandRegistry* _registry = nullptr;
     Print* _output = nullptr;
     uint32_t _interceptorID = 0;
+    std::shared_ptr<ResponseRoute> _responseRoute;
+    Command::CommandTransportRouteId _responseRouteId = 0;
+    std::atomic<Command::CommandRequestId> _nextRequestId{1};
 
-    static bool IsUnknownCommand(const Command::CommandResult& result) {
-        return !result.success &&
-            result.message.rfind("Unknown command '", 0) == 0;
+    bool CanHandleLine(std::string_view line) const {
+        if (_registry == nullptr) {
+            return false;
+        }
+
+        std::string error;
+        const auto tokens = Command::TextCommandParser::Tokenize(
+            std::string(line),
+            &error
+        );
+        if (!error.empty() || tokens.empty()) {
+            return false;
+        }
+        if (tokens.front() == "help" || tokens.front() == "?") {
+            return true;
+        }
+
+        return _registry->Resolve({tokens.front()}) != nullptr;
     }
 
     void PrintResult(const Command::CommandResult& result) {
@@ -33,15 +81,40 @@ private:
         _output->println(result.message.c_str());
     }
 
+    void PrintResponse(const Command::CommandResponseEnvelope& response) {
+        if (_output == nullptr || response.MessageLength == 0) {
+            return;
+        }
+        const std::string message = response.MessageString();
+        _output->println(message.c_str());
+    }
+
     bool HandleLine(std::string_view line) {
-        if (_registry == nullptr) {
+        if (!CanHandleLine(line) || _responseRouteId == 0) {
             return false;
         }
-        auto result = _registry->Invoke(std::string(line));
-        if (IsUnknownCommand(result)) {
-            return false;
+
+        Command::CommandRequestEnvelope envelope;
+        envelope.RequestId =
+            _nextRequestId.fetch_add(1, std::memory_order_relaxed);
+        if (envelope.RequestId == 0) {
+            envelope.RequestId =
+                _nextRequestId.fetch_add(1, std::memory_order_relaxed);
         }
-        PrintResult(result);
+        envelope.Origin.TransportRoute = _responseRouteId;
+        envelope.ResponseExpectation =
+            Command::CommandResponseExpectation::Completion;
+        envelope.ResponseMode = Command::CommandResponseMode::Single;
+        envelope.ResponseTimeoutMilliseconds = 100;
+
+        if (!envelope.SetRaw(line.data(), line.size())) {
+            if (_output != nullptr) {
+                _output->println("Command input exceeds asynchronous envelope capacity");
+            }
+            return true;
+        }
+
+        (new Event::InboundCommandEvent(envelope))->Queue();
         return true;
     }
 
@@ -59,16 +132,26 @@ public:
         if (!console.GetIsInitialized() || console.GetOutput() == nullptr) {
             return false;
         }
+
         _console = &console;
         _registry = &registry;
         _output = console.GetOutput();
+
+        _responseRoute = std::make_shared<ResponseRoute>(*this);
+        _responseRouteId =
+            Command::CommandResponseRouteRegistry::GetInstance().Register(
+                _responseRoute
+            );
+        if (_responseRouteId == 0) {
+            Shutdown();
+            return false;
+        }
+
         _interceptorID = console.RegisterLineInterceptor(
             [this](std::string_view line) { return HandleLine(line); }
         );
         if (_interceptorID == 0) {
-            _console = nullptr;
-            _registry = nullptr;
-            _output = nullptr;
+            Shutdown();
             return false;
         }
         return true;
@@ -79,18 +162,36 @@ public:
             _console->UnregisterLineInterceptor(_interceptorID);
         }
         _interceptorID = 0;
+
+        if (_responseRouteId != 0) {
+            Command::CommandResponseRouteRegistry::GetInstance().Unregister(
+                _responseRouteId
+            );
+            _responseRouteId = 0;
+        }
+        if (_responseRoute) {
+            _responseRoute->Detach();
+            _responseRoute.reset();
+        }
+
         _console = nullptr;
         _registry = nullptr;
         _output = nullptr;
     }
 
     bool GetIsInitialized() const noexcept {
-        return _console != nullptr && _registry != nullptr && _interceptorID != 0;
+        return
+            _console != nullptr &&
+            _registry != nullptr &&
+            _interceptorID != 0 &&
+            _responseRouteId != 0;
     }
 
     Command::CommandRegistry* GetRegistry() const noexcept { return _registry; }
     Console* GetConsole() const noexcept { return _console; }
 
+    // Explicit programmatic execution remains synchronous by design. This is
+    // the direct/local Command path rather than transport-style ingress.
     Command::CommandResult Execute(std::string_view line) {
         if (_registry == nullptr) {
             return Command::CommandResult::Error("CommandConsole is not initialized");
