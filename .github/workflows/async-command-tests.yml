@@ -1,0 +1,51 @@
+name: Async Command Console Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  host-async-command-console:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Serial
+        uses: actions/checkout@v4
+      - name: Checkout asynchronous Command branch
+        uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Command
+          ref: feature/30-async-command-routing
+          path: deps/ESPressio-Command
+      - name: Checkout Observable
+        uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Observable
+          ref: 3.0.2
+          path: deps/ESPressio-Observable
+      - name: Compile asynchronous CommandConsole regression
+        run: >-
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror
+          -Itests/stubs
+          -Isrc
+          -Ideps/ESPressio-Command/src
+          -Ideps/ESPressio-Observable/src
+          tests/test_command_console.cpp
+          -o test_command_console_async
+      - name: Run asynchronous CommandConsole regression
+        run: ./test_command_console_async
+
+  source-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard asynchronous transport-style ingress
+        shell: bash
+        run: |
+          grep -q 'InboundCommandEvent' src/command-console/ESPressio_CommandConsole.hpp
+          grep -q 'CommandResponseRouteRegistry' src/command-console/ESPressio_CommandConsole.hpp
+          grep -q 'CommandRequestEnvelope' src/command-console/ESPressio_CommandConsole.hpp
+          grep -q 'CommandResult Execute' src/command-console/ESPressio_CommandConsole.hpp
+          if grep -q '_registry->Invoke(std::string(line))' src/command-console/ESPressio_CommandConsole.hpp; then
+            echo 'Serial interceptor regressed to synchronous Command execution.' >&2
+            exit 1
+          fi
