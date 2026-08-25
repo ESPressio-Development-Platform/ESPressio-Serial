@@ -14,7 +14,11 @@ namespace ESPressio::Serial {
 class WiFiEventMonitor final : public Event::EventThread {
 public:
     explicit WiFiEventMonitor(Print& output)
-        : Event::EventThread(false), _output(output) {
+        : Event::EventThread(
+              Threads::ThreadReleasePolicy::ExplicitRelease
+          ),
+          _output(output) {
+        SetStartOnInitialize(false);
         RegisterAll();
     }
 
