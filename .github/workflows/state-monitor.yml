@@ -44,12 +44,18 @@ jobs:
           using Contract = ESPressio::State::StateContract<LedState>;
           ESPressio::State::RemoteStateManager<Contract, 2> remoteState;
           ESPressio::State::StateSubscriptionRegistry<2> subscriptions;
+          ESPressio::State::StateSubscriberRegistry<Contract, 2> subscribers;
+          ESPressio::State::StatePublisher<Contract> publisher;
+          ESPressio::State::StatePublicationTracker<LedState> publication;
           ESPressio::Serial::StateMonitor monitor;
 
           void setup() {
               Serial.begin(115200);
               monitor.ObserveRemoteState(remoteState, Serial);
               monitor.ObserveSubscriptions(subscriptions, Serial);
+              monitor.ObserveSubscribers(subscribers, Serial);
+              monitor.ObservePublisher(publisher, Serial);
+              monitor.ObservePublications(publication, Serial);
           }
 
           void loop() {}
