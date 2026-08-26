@@ -13,11 +13,13 @@ namespace ESPressio::Serial {
 class StateMonitor final :
     public ESPressio::State::IRemoteStateManagerObserver,
     public ESPressio::State::IStateSubscriptionRegistryObserver,
+    public ESPressio::State::IStateSubscriberRegistryObserver,
     public ESPressio::State::IStatePublisherObserver,
     public ESPressio::State::IStatePublicationObserver {
     Print* _output = nullptr;
     ESPressio::Observable::ObserverHandlePtr _remoteStateHandle;
     ESPressio::Observable::ObserverHandlePtr _subscriptionHandle;
+    ESPressio::Observable::ObserverHandlePtr _subscriberHandle;
     ESPressio::Observable::ObserverHandlePtr _publisherHandle;
     ESPressio::Observable::ObserverHandlePtr _publicationHandle;
 
@@ -98,6 +100,19 @@ public:
         return static_cast<bool>(_subscriptionHandle);
     }
 
+    template<typename TContract, std::size_t TMaximumSubscribers>
+    bool ObserveSubscribers(
+        ESPressio::State::StateSubscriberRegistry<TContract, TMaximumSubscribers>& registry,
+        Print& output
+    ) {
+        if (_subscriberHandle) return true;
+        _output = &output;
+        _subscriberHandle = registry.RegisterObserver(
+            static_cast<ESPressio::State::IStateSubscriberRegistryObserver*>(this)
+        );
+        return static_cast<bool>(_subscriberHandle);
+    }
+
     template<typename TContract>
     bool ObservePublisher(
         ESPressio::State::StatePublisher<TContract>& publisher,
@@ -127,6 +142,7 @@ public:
     void Shutdown() {
         _publicationHandle.reset();
         _publisherHandle.reset();
+        _subscriberHandle.reset();
         _subscriptionHandle.reset();
         _remoteStateHandle.reset();
         _output = nullptr;
@@ -168,6 +184,25 @@ public:
     void OnStateSubscriptionCapacityExhausted(ESPressio::State::StateTypeId typeId,
         ESPressio::State::StateSubscriptionScope, const ESPressio::State::DeviceIdentifier& device) override {
         Prefix("SubscriptionCapacityExhausted"); Type(typeId); if (!device.IsZero()) { _output->print(" device="); Device(device); } _output->println();
+    }
+
+    void OnRemoteStateSubscriberAdded(const ESPressio::State::DeviceIdentifier& device,
+        ESPressio::State::StateTypeId typeId) override {
+        Prefix("RemoteSubscriberAdded"); _output->print(" device="); Device(device); Type(typeId); _output->println();
+    }
+
+    void OnRemoteStateSubscriberRemoved(const ESPressio::State::DeviceIdentifier& device,
+        ESPressio::State::StateTypeId typeId) override {
+        Prefix("RemoteSubscriberRemoved"); _output->print(" device="); Device(device); Type(typeId); _output->println();
+    }
+
+    void OnRemoteStateSubscriberDeviceRemoved(const ESPressio::State::DeviceIdentifier& device) override {
+        Prefix("RemoteSubscriberDeviceRemoved"); _output->print(" device="); Device(device); _output->println();
+    }
+
+    void OnRemoteStateSubscriberCapacityExhausted(const ESPressio::State::DeviceIdentifier& device,
+        ESPressio::State::StateTypeId typeId) override {
+        Prefix("RemoteSubscriberCapacityExhausted"); _output->print(" device="); Device(device); Type(typeId); _output->println();
     }
 
     void OnStateSourceRegistered(ESPressio::State::StateTypeId typeId) override {
