@@ -6,25 +6,7 @@ ESPressio Serial is intentionally the **terminal/operator layer** of the ecosyst
 
 ## Current Version — 0.8.1
 
-0.8.1 is a dependency-maintenance release aligning every optional Serial integration with the completed released Serializable 0.11.3 cascade. Core Serial still has no mandatory ESPressio dependencies; every subsystem integration is selected explicitly.
-
-Validated generation:
-
-```text
-Observable    3.0.2
-Serializable  0.11.3
-Units         0.2.7
-Timing        2.2.8
-Threads       3.1.7
-Event         6.0.3
-Command       1.0.3
-Security      0.4.2
-Persistence   0.3.2
-Sockets       0.7.3
-ESP-Now       0.8.3
-WiFi          0.2.0
-Serial        0.8.1
-```
+0.8.1 is the current released baseline. The active platform-abstraction working branch additionally removes Arduino `Stream`/`Print` from the Serial core and consumes the byte-oriented contracts defined by ESPressio-System.
 
 ## Namespace
 
@@ -32,140 +14,80 @@ Serial        0.8.1
 ESPressio::Serial
 ```
 
-Because Arduino exposes a global object named `Serial`, fully qualified ESPressio names are recommended:
+Because Arduino exposes a global object named `Serial`, fully qualified ESPressio names remain recommended in ESP32 applications.
+
+# Platform-neutral byte I/O
+
+Core Serial no longer stores Arduino `Stream` or `Print` objects. Console input/output and log sinks consume:
 
 ```cpp
-ESPressio::Serial::WiFiMonitor wifiMonitor;
+ESPressio::System::IO::IByteInput
+ESPressio::System::IO::IByteOutput
+ESPressio::System::IO::IByteStream
 ```
 
-while the hardware port remains `::Serial`.
+This keeps console parsing, logging, monitoring and formatting in ESPressio-Serial while moving framework-specific byte transport to the platform layer.
 
-# WiFi diagnostics
+During coordinated development:
 
-`WiFiMonitor` observes ESPressio WiFi's native `IWiFiObserver` surface. It does not poll Arduino WiFi directly and it never reads configuration credentials.
+```ini
+lib_deps =
+    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#feature/1-system-memory-policy
+    https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git#optimisation/39-explicit-thread-lifecycle
+```
+
+On Arduino-ESP32, add ESPressio-ESP32 and create the adapter at the application boundary:
 
 ```cpp
-#include <ESPressio_WiFiMonitor.hpp>
+#include <ESPressio_ArduinoByteStream.hpp>
+#include <ESPressio_Console.hpp>
 
-ESPressio::Serial::WiFiMonitor wifiMonitor;
+ESPressio::ESP32Platform::ArduinoByteStream consoleIO(::Serial);
+ESPressio::Serial::Console console;
 
 void setup() {
     ::Serial.begin(115200);
-    wifiMonitor.Initialize(::Serial, wifi);
+    console.Initialize(consoleIO);
 }
 ```
 
-Typical output is intentionally compact and keeps AP and Client contexts separate:
+Separate input/output adapters are also available when the two directions use different framework objects.
 
-```text
-[ESPressio WiFi] Mode ap -> ap-client
-[ESPressio WiFi] AP starting -> active ssid=ESPressio-Lab stations=0
-[ESPressio WiFi] Client connecting -> connected ssid=Studio rssi=-43 channel=6
-[ESPressio WiFi] ClientIPAddressAcquired ip=192.168.1.42 gateway=192.168.1.1
-[ESPressio WiFi] APStationConnected station=94:B5:55:19:1D:9C
-```
+# Interactive console
 
-An on-demand runtime snapshot is available without enabling periodic noise:
+`Console` owns bounded line collection, optional echo, prompt rendering, line interception, command registration and help/error output. It can be initialized with one bidirectional byte stream:
 
 ```cpp
-wifiMonitor.PrintStatus(wifi);
+console.Initialize(consoleIO);
 ```
 
-which produces a line such as:
-
-```text
-[ESPressio WiFi] Status mode=ap-client ap=active stations=1 client=connected ip=192.168.1.42 scan=idle
-```
-
-## Scan diagnostics
-
-When WiFi performs an asynchronous scan, the monitor reports lifecycle and results:
-
-```text
-[ESPressio WiFi] Scan idle -> scanning
-[ESPressio WiFi] ScanComplete count=2
-  ssid=Studio rssi=-43 channel=6 security=wpa2
-  ssid=Guest rssi=-71 channel=11 security=open
-```
-
-The monitor consumes only ESPressio WiFi public types. Arduino/ESP-IDF WiFi types never cross the integration boundary.
-
-## Credential safety
-
-`WiFiMonitor` deliberately has no API that accepts or prints WiFi passwords. It observes runtime state such as SSID, RSSI, channel, IP address and station identity only.
-
-A WiFi Command handler may set credentials, but neither that handler nor this monitor provides a plaintext credential-read operation. Persisted credentials should use ESPressio WiFi's protected Persistence integration.
-
-# Dependency model
-
-The **core ESPressio Serial library has no required ESPressio dependencies**.
-
-Optional integrations include:
-
-```text
-CommandConsole / CommandMonitor
-    - - -> Command >= 1.0.3 < 2.0.0
-
-SecurityMonitor
-    - - -> Security >= 0.4.2 < 1.0.0
-
-SocketWorkerMonitor / SocketSecuritySessionMonitor
-    - - -> Sockets >= 0.7.3 < 1.0.0
-
-ESPNowTransportMonitor
-    - - -> ESP-Now >= 0.8.3 < 1.0.0
-
-SystemClockMonitor
-    - - -> Timing >= 2.2.8 < 3.0.0
-
-ThreadMonitor
-    - - -> Threads >= 3.1.7 < 4.0.0
-
-EventMonitor / EventConsole
-    - - -> Event >= 6.0.3 < 7.0.0
-    - - -> Serializable >= 0.11.3 < 1.0.0
-
-WiFiMonitor
-    - - -> WiFi >= 0.2.0 < 1.0.0
-```
-
-Serial remains terminal/downstream. No upstream library should depend on Serial.
-
-# Interactive Command and Event tooling
-
-`CommandConsole` integrates ESPressio Command with a `Stream`/`Print` console. Domain-owned Command handlers, including WiFi's optional `WiFiCommandHandler`, automatically become usable from that console once registered with the shared `CommandRegistry`.
-
-```text
-operator -> Serial Console -> CommandRegistry -> WiFiCommandHandler -> WiFiManager
-```
-
-This is deliberately transport-independent: a future Web console can invoke the same Command tree without changing WiFi.
-
-`EventConsole` provides runtime discovery and JSON composition/dispatch of registered Serializable Events while reusing Event's normal registry, authorization and validation mechanisms.
+or distinct portable input/output endpoints:
 
 ```cpp
-#include <ESPressio_EventConsole.hpp>
-
-ESPressio::Serial::Console console;
-ESPressio::Serial::EventConsole eventConsole;
-
-void setup() {
-    console.Initialize(::Serial, ::Serial);
-    eventConsole.Initialize(console);
-}
+console.Initialize(input, output);
 ```
 
-Useful operator commands include `events`, `event describe`, `event queue`, `event stack`, and `event compose`. Runtime Event authorization remains safe-by-default and should be explicitly configured by the application.
+The console remains independent of the mechanism carrying those bytes. Arduino UART, USB serial, a test stream or another platform adapter can satisfy the same contract.
+
+`CommandConsole` integrates ESPressio Command with this portable console. Domain-owned Command handlers automatically become available once registered with the shared `CommandRegistry`:
+
+```text
+operator -> byte stream -> Serial Console -> CommandRegistry -> domain Command handler
+```
+
+`EventConsole` provides runtime discovery and composition/dispatch of registered Serializable Events while reusing Event's normal registry, authorization and validation mechanisms.
 
 # Logging and diagnostic history
 
-The logging layer separates records from sinks:
+The logging layer separates records from sinks. `SerialLogSink` now consumes a portable `IByteOutput`:
 
 ```cpp
 #include <ESPressio_Logging.hpp>
+#include <ESPressio_ArduinoByteStream.hpp>
 
+ESPressio::ESP32Platform::ArduinoByteOutput serialOutput(::Serial);
 ESPressio::Serial::Logger<> logger;
-ESPressio::Serial::SerialLogSink serialSink(::Serial);
+ESPressio::Serial::SerialLogSink serialSink(serialOutput);
 ESPressio::Serial::DiagnosticRingBuffer<64> history;
 
 logger.AddSink(serialSink);
@@ -173,7 +95,26 @@ logger.AddSink(history);
 logger.Info("Application", "Boot complete");
 ```
 
-`DiagnosticRingBuffer` retains bounded pre-failure history and can later be dumped to any Arduino `Print` implementation.
+`SerialLogSink` preserves compact timestamp/level/category formatting and CRLF line output without requiring Arduino `Print` in the logging implementation.
+
+# WiFi diagnostics
+
+`WiFiMonitor` observes ESPressio-WiFi's native `IWiFiObserver` surface. It does not poll Arduino WiFi directly and it never reads configuration credentials.
+
+Typical output remains intentionally compact and keeps AP and Client contexts separate:
+
+```text
+[ESPressio WiFi] Mode ap -> ap-client
+[ESPressio WiFi] AP starting -> active ssid=ESPressio-Lab stations=0
+[ESPressio WiFi] Client connecting -> connected ssid=Studio rssi=-43 channel=6
+[ESPressio WiFi] ClientIPAddressAcquired ip=192.168.1.42 gateway=192.168.1.1
+```
+
+The monitor consumes only ESPressio WiFi public types. Arduino/ESP-IDF WiFi types never cross the integration boundary.
+
+## Credential safety
+
+WiFi diagnostics deliberately have no API that reads or prints plaintext passwords. Runtime state such as SSID, RSSI, channel, IP address and station identity can be reported without exposing persisted credentials.
 
 # Other monitors
 
@@ -181,16 +122,63 @@ Serial provides opt-in monitors for Timing/System Clock, Threads, Event Transpor
 
 `EventMonitor` structured ESPB diagnostics use bounded, allocation-free traversal and fall back to bounded hexadecimal output for malformed or outside-limit payloads, keeping diagnostic code fail-safe on constrained devices.
 
+# Dependency model
+
+The Serial core now has one required ESPressio dependency:
+
+```text
+Serial core
+    -> System   (portable byte I/O)
+```
+
+Optional integrations remain downstream and selected only when their corresponding headers/features are used:
+
+```text
+CommandConsole / CommandMonitor  - - -> Command
+SecurityMonitor                  - - -> Security
+Socket monitors                  - - -> Sockets
+ESPNowTransportMonitor           - - -> ESP-Now
+SystemClockMonitor               - - -> Timing
+ThreadMonitor                    - - -> Threads
+EventMonitor / EventConsole      - - -> Event / Serializable
+WiFiMonitor                      - - -> WiFi
+```
+
+Serial remains terminal/downstream. No upstream domain library should depend on Serial.
+
+# Platform boundary
+
+The intended ESP32 composition is:
+
+```text
+Arduino Serial / Stream / Print
+             |
+             v
+ESPressio-ESP32 byte adapter
+             |
+             v
+System::IO byte contract
+             |
+             v
+ESPressio-Serial Console / logging / diagnostics
+```
+
+This is deliberately different from wrapping Arduino types inside new Serial-domain interfaces: raw byte transport is generic hardware/runtime I/O and therefore belongs in System, while Serial owns what those bytes mean to operators and diagnostics.
+
 # Design principles
 
 - Serial is an operator/diagnostics layer, not a replacement for source-library APIs.
-- Core Serial remains dependency-free.
+- Core Serial is framework- and platform-neutral.
+- Framework byte-stream types are adapted at the platform/application boundary.
 - Optional integrations remain opt-in and downstream.
 - Monitors consume ESPressio public types rather than lower-framework implementation types.
 - Sensitive configuration values are not emitted merely because diagnostics are enabled.
 - Diagnostic buffers and parsing limits are bounded for embedded reliability.
 - Command/Event operator surfaces reuse their authoritative registries and validation paths.
-- CI and integration validation use released ESPressio tags only; development branches are not release dependencies.
+
+# Platform abstraction audit
+
+See [PLATFORM_ABSTRACTIONS.md](PLATFORM_ABSTRACTIONS.md) for the migration record.
 
 # Changelog
 
