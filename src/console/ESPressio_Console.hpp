@@ -2,9 +2,11 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <functional>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -13,6 +15,165 @@
 #include "ESPressio_ConsoleTypes.hpp"
 
 namespace ESPressio::Serial {
+
+// Text-formatting facade over the platform-neutral byte-output contract.
+//
+// Console-oriented layers historically consumed Arduino Print directly. This
+// writer keeps their convenient print/println formatting semantics inside the
+// Serial domain while the actual output remains a System::IO::IByteOutput.
+class ByteOutputTextWriter final : public System::IO::IByteOutput {
+private:
+    System::IO::IByteOutput* _output = nullptr;
+
+    template<typename TValue>
+    void PrintIntegral(TValue value) noexcept {
+        if (_output == nullptr) return;
+
+        char buffer[32];
+        if constexpr (std::is_signed_v<TValue>) {
+            std::snprintf(
+                buffer,
+                sizeof(buffer),
+                "%lld",
+                static_cast<long long>(value)
+            );
+        } else {
+            std::snprintf(
+                buffer,
+                sizeof(buffer),
+                "%llu",
+                static_cast<unsigned long long>(value)
+            );
+        }
+        (void)_output->WriteText(buffer);
+    }
+
+    template<typename TValue>
+    void PrintFloating(TValue value) noexcept {
+        if (_output == nullptr) return;
+
+        char buffer[48];
+        std::snprintf(
+            buffer,
+            sizeof(buffer),
+            "%.6g",
+            static_cast<double>(value)
+        );
+        (void)_output->WriteText(buffer);
+    }
+
+public:
+    ByteOutputTextWriter() = default;
+
+    explicit ByteOutputTextWriter(System::IO::IByteOutput* output) noexcept
+        : _output(output) {}
+
+    void Bind(System::IO::IByteOutput* output) noexcept {
+        _output = output;
+    }
+
+    System::IO::IByteOutput* GetOutput() const noexcept {
+        return _output;
+    }
+
+    System::PlatformResult Write(
+        const uint8_t* data,
+        std::size_t size,
+        std::size_t& bytesWritten
+    ) noexcept override {
+        bytesWritten = 0;
+        if (_output == nullptr) {
+            return System::PlatformResult::Failed(
+                System::PlatformStatus::Unavailable
+            );
+        }
+        return _output->Write(data, size, bytesWritten);
+    }
+
+    void print(const char* text) noexcept {
+        if (_output != nullptr && text != nullptr) {
+            (void)_output->WriteText(text);
+        }
+    }
+
+    void print(const std::string& text) noexcept {
+        print(text.c_str());
+    }
+
+    void print(char value) noexcept {
+        if (_output != nullptr) {
+            (void)_output->WriteByte(static_cast<uint8_t>(value));
+        }
+    }
+
+    template<
+        typename TValue,
+        std::enable_if_t<
+            std::is_integral_v<TValue> &&
+            !std::is_same_v<std::remove_cv_t<TValue>, char>,
+            int
+        > = 0
+    >
+    void print(TValue value) noexcept {
+        PrintIntegral(value);
+    }
+
+    template<
+        typename TValue,
+        std::enable_if_t<std::is_floating_point_v<TValue>, int> = 0
+    >
+    void print(TValue value) noexcept {
+        PrintFloating(value);
+    }
+
+    void println() noexcept {
+        if (_output != nullptr) {
+            (void)_output->WriteLine();
+        }
+    }
+
+    void println(const char* text) noexcept {
+        if (_output != nullptr) {
+            (void)_output->WriteLine(text);
+        }
+    }
+
+    void println(const std::string& text) noexcept {
+        println(text.c_str());
+    }
+
+    void println(char value) noexcept {
+        print(value);
+        println();
+    }
+
+    template<
+        typename TValue,
+        std::enable_if_t<
+            std::is_integral_v<TValue> &&
+            !std::is_same_v<std::remove_cv_t<TValue>, char>,
+            int
+        > = 0
+    >
+    void println(TValue value) noexcept {
+        print(value);
+        println();
+    }
+
+    template<
+        typename TValue,
+        std::enable_if_t<std::is_floating_point_v<TValue>, int> = 0
+    >
+    void println(TValue value) noexcept {
+        print(value);
+        println();
+    }
+};
+
+// Transitional source-compatibility name for the Serial console extensions
+// that historically stored Arduino Print*. Because this alias lives in the
+// ESPressio::Serial namespace, it does not alter or expose the Arduino type.
+using Print = ByteOutputTextWriter;
 
 class Console final {
 private:
@@ -24,6 +185,7 @@ private:
 
     System::IO::IByteInput* _input = nullptr;
     System::IO::IByteOutput* _output = nullptr;
+    mutable ByteOutputTextWriter _textOutput;
     ConsoleConfig _config;
 
     std::vector<CommandRegistration> _commands;
@@ -152,6 +314,7 @@ public:
 
         _input = &input;
         _output = &output;
+        _textOutput.Bind(_output);
         _config = std::move(preparedConfig);
         _line = std::move(preparedLine);
         _discardUntilNewline = false;
@@ -170,6 +333,7 @@ public:
     void Shutdown() {
         _input = nullptr;
         _output = nullptr;
+        _textOutput.Bind(nullptr);
         _line.clear();
         _discardUntilNewline = false;
         _interceptors.clear();
@@ -183,8 +347,8 @@ public:
         return _input;
     }
 
-    System::IO::IByteOutput* GetOutput() const noexcept {
-        return _output;
+    ByteOutputTextWriter* GetOutput() const noexcept {
+        return _output == nullptr ? nullptr : &_textOutput;
     }
 
 #ifdef ESPRESSIO_SERIAL_TESTING
@@ -243,15 +407,15 @@ public:
 
     bool UnregisterCommand(std::string_view name) {
         const auto found = std::remove_if(
-            _commands.begin(),
-            _commands.end(),
+            _interceptors.begin(),
+            _interceptors.end(),
             [&](const auto& item) {
                 return EqualsIgnoreCase(item.Name, name);
             }
         );
 
-        if (found == _commands.end()) return false;
-        _commands.erase(found, _commands.end());
+        if (found == _interceptors.end()) return false;
+        _interceptors.erase(found, _interceptors.end());
         return true;
     }
 
