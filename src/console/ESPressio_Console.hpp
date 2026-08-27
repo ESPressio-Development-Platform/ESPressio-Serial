@@ -407,15 +407,15 @@ public:
 
     bool UnregisterCommand(std::string_view name) {
         const auto found = std::remove_if(
-            _interceptors.begin(),
-            _interceptors.end(),
+            _commands.begin(),
+            _commands.end(),
             [&](const auto& item) {
                 return EqualsIgnoreCase(item.Name, name);
             }
         );
 
-        if (found == _interceptors.end()) return false;
-        _interceptors.erase(found, _interceptors.end());
+        if (found == _commands.end()) return false;
+        _commands.erase(found, _commands.end());
         return true;
     }
 
