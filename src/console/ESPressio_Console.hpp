@@ -16,6 +16,7 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Adapts an ESPressio byte-output abstraction to the Arduino-style print/println surface used by Serial diagnostics.</summary>
 class ByteOutputTextWriter final : public System::IO::IByteOutput {
 private:
     System::IO::IByteOutput* _output = nullptr;
@@ -44,11 +45,17 @@ private:
 
 public:
     ByteOutputTextWriter() = default;
+
+    /// <summary>Creates a writer bound to a non-owning byte-output destination.</summary>
     explicit ByteOutputTextWriter(System::IO::IByteOutput* output) noexcept : _output(output) {}
 
+    /// <summary>Rebinds the writer to a byte-output destination; null detaches it.</summary>
     void Bind(System::IO::IByteOutput* output) noexcept { _output = output; }
+
+    /// <summary>Returns the currently bound non-owning byte-output destination.</summary>
     System::IO::IByteOutput* GetOutput() const noexcept { return _output; }
 
+    /// <inheritdoc/>
     System::PlatformResult Write(
         const uint8_t* data,
         std::size_t size,
@@ -61,11 +68,13 @@ public:
         return _output->Write(data, size, bytesWritten);
     }
 
+    /// <summary>Writes one byte using Arduino Print-compatible return semantics.</summary>
     std::size_t write(uint8_t value) noexcept {
         if (_output == nullptr) return 0;
         return _output->WriteByte(value) ? 1u : 0u;
     }
 
+    /// <summary>Writes a byte sequence and returns the number of bytes accepted by the destination.</summary>
     std::size_t write(const uint8_t* data, std::size_t size) noexcept {
         if (_output == nullptr || data == nullptr || size == 0) return 0;
         std::size_t written = 0;
@@ -73,6 +82,7 @@ public:
         return written;
     }
 
+    /// <summary>Writes null-terminated text without appending a newline.</summary>
     void print(const char* text) noexcept {
         if (_output != nullptr && text != nullptr) (void)_output->WriteText(text);
     }
@@ -88,6 +98,7 @@ public:
     template<typename TValue, std::enable_if_t<std::is_floating_point_v<TValue>, int> = 0>
     void print(TValue value, int digits) noexcept { PrintFloating(value, digits); }
 
+    /// <summary>Writes a newline.</summary>
     void println() noexcept { if (_output != nullptr) (void)_output->WriteLine(); }
     void println(const char* text) noexcept { if (_output != nullptr) (void)_output->WriteLine(text); }
     void println(const std::string& text) noexcept { println(text.c_str()); }
@@ -103,8 +114,11 @@ public:
     void println(TValue value, int digits) noexcept { print(value, digits); println(); }
 };
 
+/// <summary>Arduino-compatible diagnostic text writer backed by ESPressio byte I/O.</summary>
 using Print = ByteOutputTextWriter;
 
+/// <summary>Line-oriented command console operating on platform-neutral ESPressio byte streams.</summary>
+/// <remarks>Console performs no background I/O; callers invoke Poll to consume currently available bytes.</remarks>
 class Console final {
 private:
     struct CommandRegistration {
@@ -177,6 +191,8 @@ private:
 public:
     Console() = default;
 
+    /// <summary>Initializes the console with distinct byte-input and byte-output endpoints.</summary>
+    /// <returns>False if input buffer preparation fails; otherwise true after the console is bound and prompt state initialized.</returns>
     bool Initialize(System::IO::IByteInput& input, System::IO::IByteOutput& output, const ConsoleConfig& config = {}) {
         ConsoleConfig preparedConfig;
         std::string preparedLine;
@@ -194,8 +210,11 @@ public:
         return true;
     }
 
+    /// <summary>Initializes the console using one bidirectional byte stream for input and output.</summary>
     bool Initialize(System::IO::IByteStream& stream, const ConsoleConfig& config = {}) { return Initialize(stream, stream, config); }
 
+    /// <summary>Detaches stream endpoints, clears pending input, and removes all line interceptors.</summary>
+    /// <remarks>Registered named commands remain available for reuse after a subsequent Initialize call.</remarks>
     void Shutdown() {
         _input = nullptr;
         _output = nullptr;
@@ -205,14 +224,19 @@ public:
         _interceptors.clear();
     }
 
+    /// <summary>Reports whether both input and output endpoints are bound.</summary>
     bool GetIsInitialized() const noexcept { return _input != nullptr && _output != nullptr; }
+    /// <summary>Returns the currently bound non-owning byte input.</summary>
     System::IO::IByteInput* GetInput() const noexcept { return _input; }
+    /// <summary>Returns the text-writer facade for the current output, or null when detached.</summary>
     ByteOutputTextWriter* GetOutput() const noexcept { return _output == nullptr ? nullptr : &_textOutput; }
 
 #ifdef ESPRESSIO_SERIAL_TESTING
     std::size_t __GetInputBufferCapacityForTesting() const noexcept { return _line.capacity(); }
 #endif
 
+    /// <summary>Registers a pre-command line interceptor.</summary>
+    /// <returns>A nonzero interceptor identifier, or zero when the callback is empty.</returns>
     uint32_t RegisterLineInterceptor(ConsoleLineInterceptor interceptor) {
         if (!interceptor) return 0;
         const uint32_t id = _nextInterceptorID++;
@@ -220,6 +244,7 @@ public:
         return id;
     }
 
+    /// <summary>Removes a previously registered line interceptor by identifier.</summary>
     bool UnregisterLineInterceptor(uint32_t id) {
         const auto found = std::remove_if(_interceptors.begin(), _interceptors.end(), [&](const auto& item) { return item.ID == id; });
         if (found == _interceptors.end()) return false;
@@ -227,6 +252,8 @@ public:
         return true;
     }
 
+    /// <summary>Registers a case-insensitive named command and optional help text.</summary>
+    /// <returns>False for an empty/duplicate name or empty handler.</returns>
     bool RegisterCommand(std::string name, std::string help, ConsoleCommandHandler handler) {
         if (name.empty() || !handler) return false;
         for (const auto& registration : _commands) if (EqualsIgnoreCase(registration.Name, name)) return false;
@@ -235,6 +262,7 @@ public:
         return true;
     }
 
+    /// <summary>Removes a named console command using case-insensitive matching.</summary>
     bool UnregisterCommand(std::string_view name) {
         const auto found = std::remove_if(_commands.begin(), _commands.end(), [&](const auto& item) { return EqualsIgnoreCase(item.Name, name); });
         if (found == _commands.end()) return false;
@@ -242,6 +270,8 @@ public:
         return true;
     }
 
+    /// <summary>Executes one complete input line through interceptors, built-in help, and registered command lookup.</summary>
+    /// <returns>The parsing/execution outcome for the supplied line.</returns>
     ConsoleExecutionResult ExecuteLine(std::string_view line) {
         if (_output == nullptr) return ConsoleExecutionResult::UnknownCommand;
         line = Trim(line);
@@ -265,6 +295,7 @@ public:
         return ConsoleExecutionResult::UnknownCommand;
     }
 
+    /// <summary>Consumes all currently available input bytes, performs line editing/length enforcement, and executes completed lines.</summary>
     void Poll() {
         if (_input == nullptr || _output == nullptr) return;
         while (_input->Available() > 0) {
