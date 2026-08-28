@@ -7,9 +7,14 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Fixed-capacity, thread-safe in-memory logger sink retaining the most recent diagnostic entries.</summary>
+/// <typeparam name="Capacity">Maximum number of retained entries.</typeparam>
+/// <typeparam name="MessageBytes">Fixed storage reserved for each message including its terminator.</typeparam>
+/// <typeparam name="CategoryBytes">Fixed storage reserved for each category including its terminator.</typeparam>
 template<std::size_t Capacity, std::size_t MessageBytes = 160, std::size_t CategoryBytes = 32>
 class DiagnosticRingBuffer final : public ILoggerSink {
 public:
+    /// <summary>Self-contained copy of a retained diagnostic entry.</summary>
     struct StoredEntry {
         uint64_t TimestampMilliseconds = 0;
         LogLevel Level = LogLevel::Info;
@@ -31,6 +36,7 @@ private:
     }
 
 public:
+    /// <inheritdoc/>
     void Write(const LogEntry& entry) override {
         std::lock_guard<std::mutex> lock(_mutex);
         auto& stored = _entries[_next];
@@ -42,16 +48,19 @@ public:
         if (_count < Capacity) ++_count;
     }
 
+    /// <summary>Returns the number of entries currently retained.</summary>
     std::size_t Size() const {
         std::lock_guard<std::mutex> lock(_mutex);
         return _count;
     }
 
+    /// <summary>Discards all retained entries without changing fixed storage capacity.</summary>
     void Clear() {
         std::lock_guard<std::mutex> lock(_mutex);
         _next = _count = 0;
     }
 
+    /// <summary>Writes retained entries to a Print sink from oldest to newest.</summary>
     void Dump(Print& output) const {
         std::lock_guard<std::mutex> lock(_mutex);
         const std::size_t start = (_next + Capacity - _count) % Capacity;
