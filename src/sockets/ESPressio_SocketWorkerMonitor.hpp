@@ -10,6 +10,7 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Writes SocketWorker start/stop lifecycle activity to an Arduino Print sink.</summary>
 class SocketWorkerMonitor final :
     public ESPressio::Sockets::ISocketWorkerObserver {
 private:
@@ -28,6 +29,8 @@ private:
     }
 
 public:
+    /// <summary>Registers the monitor with a SocketWorker and selects its output sink.</summary>
+    /// <returns>True when the observer registration is active.</returns>
     bool Initialize(Print& output, ESPressio::Sockets::SocketWorker& worker) {
         if (_handle) return true;
         _output = &output;
@@ -36,13 +39,17 @@ public:
         return true;
     }
 
+    /// <summary>Unregisters from the worker and releases the output sink reference.</summary>
     void Shutdown() {
         _handle.reset();
         _output = nullptr;
     }
 
+    /// <inheritdoc/>
     void OnSocketWorkerStarted(const char* name) override { Line("Started", name); }
+    /// <inheritdoc/>
     void OnSocketWorkerStartFailed(const char* name) override { Line("StartFailed", name); }
+    /// <inheritdoc/>
     void OnSocketWorkerStopped() override { Line("Stopped"); }
 };
 
