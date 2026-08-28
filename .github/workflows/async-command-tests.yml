@@ -16,11 +16,17 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Command
           ref: feature/30-async-command-routing
           path: deps/ESPressio-Command
-      - name: Checkout Observable
+      - name: Checkout System working branch
+        uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: feature/1-system-memory-policy
+          path: deps/ESPressio-System
+      - name: Checkout Observable working branch
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: 3.0.2
+          ref: feature/16-rtti-free-observer-registry
           path: deps/ESPressio-Observable
       - name: Compile asynchronous CommandConsole regression
         run: >-
@@ -28,6 +34,7 @@ jobs:
           -Itests/stubs
           -Isrc
           -Ideps/ESPressio-Command/src
+          -Ideps/ESPressio-System/src
           -Ideps/ESPressio-Observable/src
           tests/test_command_console.cpp
           -o test_command_console_async
