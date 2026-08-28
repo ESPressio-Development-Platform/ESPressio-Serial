@@ -73,7 +73,9 @@ private:
             return true;
         }
 
-        return _registry->Resolve({tokens.front()}) != nullptr;
+        Command::CommandPath path;
+        path.emplace_back(tokens.front());
+        return _registry->Resolve(path) != nullptr;
     }
 
     void PrintResult(const Command::CommandResult& result) {
