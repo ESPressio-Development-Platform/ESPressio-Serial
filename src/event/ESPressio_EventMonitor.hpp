@@ -13,18 +13,18 @@
 #include <cstdint>
 #include <mutex>
 
-#include <Arduino.h>
 #include <ESPressio_EventTransport.hpp>
 #include <ESPressio_Memory.hpp>
 
+#include "../console/ESPressio_Console.hpp"
 #include "../ESPressio_SerialTypes.hpp"
 #include "ESPressio_EventMonitorFormatter.hpp"
 #include "ESPressio_EventMonitorPayloadSafety.hpp"
 
 namespace ESPressio::Serial {
 
-/// <summary>Writes Event transport transactions and optional payload representations to an Arduino Print sink.</summary>
-/// <remarks>Each diagnostic record is first composed into a bounded System <c>ExternalPreferred</c> buffer and then emitted with one bulk sink write. This keeps repeated Arduino Print/driver calls off the observed Event transport worker's constrained stack and greatly reduces cross-task output interleaving. Structured payload traversal remains bounded by the configured depth, node, collection, string, and rendered-byte limits.</remarks>
+/// <summary>Writes Event transport transactions and optional payload representations to an ESPressio byte-output sink.</summary>
+/// <remarks>Each diagnostic record is first composed into a bounded System <c>ExternalPreferred</c> buffer and then emitted with one bulk sink write. This keeps repeated formatting/output calls off the observed Event transport worker's constrained stack and greatly reduces cross-task output interleaving. Structured payload traversal remains bounded by the configured depth, node, collection, string, and rendered-byte limits.</remarks>
 class EventMonitor final :
     public Event::IEventTransportManagerObserver {
 
@@ -33,51 +33,109 @@ private:
         System::Memory::MemoryPolicy::ExternalPreferred
     >;
 
-    class BufferedPrint final : public Print {
+    /// <summary>Bounded byte sink used while composing one Event diagnostic record.</summary>
+    class BufferedOutput final : public System::IO::IByteOutput {
     public:
-        explicit BufferedPrint(std::size_t maximumBytes)
-            : _maximumBytes(maximumBytes) {
+        explicit BufferedOutput(std::size_t maximumBytes)
+            : _maximumBytes(maximumBytes),
+              _writer(this) {
             if (_maximumBytes != 0) {
-                _buffer.reserve(std::min<std::size_t>(_maximumBytes, 512));
+                try {
+                    _buffer.reserve(
+                        std::min<std::size_t>(
+                            _maximumBytes,
+                            512
+                        )
+                    );
+                } catch (...) {
+                    _renderFailed = true;
+                }
             }
         }
 
-        std::size_t write(uint8_t value) override {
-            return write(&value, 1);
-        }
+        /// <inheritdoc/>
+        System::PlatformResult Write(
+            const uint8_t* data,
+            std::size_t size,
+            std::size_t& bytesWritten
+        ) noexcept override {
+            bytesWritten = 0;
 
-        std::size_t write(
-            const uint8_t* buffer,
-            std::size_t size
-        ) override {
-            if (buffer == nullptr || size == 0) return 0;
-            if (_maximumBytes == 0 || _buffer.size() >= _maximumBytes) {
+            if (data == nullptr && size != 0) {
+                return System::PlatformResult::Failed(
+                    System::PlatformStatus::InvalidArgument
+                );
+            }
+
+            if (size == 0) {
+                return System::PlatformResult::Succeeded();
+            }
+
+            // Formatting is best-effort diagnostics. Once the configured bound
+            // has been reached, consume the remaining logical writes without
+            // extending the buffer so callers do not repeatedly retry them.
+            if (
+                _maximumBytes == 0 ||
+                _buffer.size() >= _maximumBytes ||
+                _renderFailed
+            ) {
                 _truncated = true;
-                return size;
+                bytesWritten = size;
+                return System::PlatformResult::Succeeded();
             }
 
-            const std::size_t writable = std::min(
-                size,
-                _maximumBytes - _buffer.size()
-            );
-            _buffer.append(
-                reinterpret_cast<const char*>(buffer),
-                writable
-            );
-            if (writable != size) _truncated = true;
+            const std::size_t writable =
+                std::min(
+                    size,
+                    _maximumBytes - _buffer.size()
+                );
 
-            // From Print's perspective the bytes have been consumed. The
-            // bounded renderer deliberately discards only the overflow tail.
-            return size;
+            try {
+                _buffer.append(
+                    reinterpret_cast<const char*>(data),
+                    writable
+                );
+            } catch (...) {
+                _renderFailed = true;
+                _truncated = true;
+                bytesWritten = size;
+                return System::PlatformResult::Succeeded();
+            }
+
+            if (writable != size) {
+                _truncated = true;
+            }
+
+            bytesWritten = size;
+            return System::PlatformResult::Succeeded();
         }
 
-        const RenderBuffer& Buffer() const noexcept { return _buffer; }
-        bool Truncated() const noexcept { return _truncated; }
+        /// <summary>Returns the text writer used by existing diagnostic formatters.</summary>
+        Print& Writer() noexcept {
+            return _writer;
+        }
+
+        /// <summary>Returns the rendered bytes accumulated for the current record.</summary>
+        const RenderBuffer& Buffer() const noexcept {
+            return _buffer;
+        }
+
+        /// <summary>Indicates that rendering exceeded its configured byte limit.</summary>
+        bool Truncated() const noexcept {
+            return _truncated;
+        }
+
+        /// <summary>Indicates that the backing diagnostic buffer could not be extended.</summary>
+        bool RenderFailed() const noexcept {
+            return _renderFailed;
+        }
 
     private:
         RenderBuffer _buffer;
         std::size_t _maximumBytes = 0;
+        ByteOutputTextWriter _writer;
         bool _truncated = false;
+        bool _renderFailed = false;
     };
 
     Print* _output = nullptr;
@@ -94,7 +152,7 @@ private:
 
     bool _initialized = false;
 
-    void FlushRecord(BufferedPrint& rendered) noexcept {
+    void FlushRecord(BufferedOutput& rendered) noexcept {
         if (_output == nullptr) return;
 
         const auto& buffer = rendered.Buffer();
@@ -104,8 +162,17 @@ private:
                 buffer.size()
             );
         }
-        if (rendered.Truncated()) {
-            static constexpr char marker[] = "\n  <diagnostic-output-truncated>\n";
+
+        if (rendered.RenderFailed()) {
+            static constexpr char marker[] =
+                "\n  <diagnostic-render-failed>\n";
+            (void)_output->write(
+                reinterpret_cast<const uint8_t*>(marker),
+                sizeof(marker) - 1
+            );
+        } else if (rendered.Truncated()) {
+            static constexpr char marker[] =
+                "\n  <diagnostic-output-truncated>\n";
             (void)_output->write(
                 reinterpret_cast<const uint8_t*>(marker),
                 sizeof(marker) - 1
@@ -114,15 +181,17 @@ private:
     }
 
     void RenderTransaction(
-        BufferedPrint& rendered,
+        BufferedOutput& rendered,
         const Event::EventTransportTransaction& transaction
     ) {
+        Print& writer = rendered.Writer();
+
         if (
             _config.PayloadFormat !=
                 EventMonitorPayloadFormat::Structured
         ) {
             EventMonitorFormatter::PrintTransaction(
-                rendered,
+                writer,
                 transaction,
                 _config
             );
@@ -136,33 +205,33 @@ private:
         metadataConfig.PayloadFormat = EventMonitorPayloadFormat::None;
 
         EventMonitorFormatter::PrintTransaction(
-            rendered,
+            writer,
             transaction,
             metadataConfig
         );
 
-        rendered.print("  payload: ");
+        writer.print("  payload: ");
 
         if (
             PrintStructuredEventPayload(
-                rendered,
+                writer,
                 transaction.Payload,
                 transaction.PayloadSize,
                 _config
             )
         ) {
-            rendered.println();
+            writer.println();
             return;
         }
 
-        rendered.print("<invalid-or-outside-monitor-limits> ");
+        writer.print("<invalid-or-outside-monitor-limits> ");
         PrintEventPayloadHexFallback(
-            rendered,
+            writer,
             transaction.Payload,
             transaction.PayloadSize,
             _config
         );
-        rendered.println();
+        writer.println();
     }
 
 public:
@@ -296,8 +365,13 @@ public:
         }
 
         try {
-            BufferedPrint rendered(_config.MaximumRenderedBytes);
-            RenderTransaction(rendered, transaction);
+            BufferedOutput rendered(
+                _config.MaximumRenderedBytes
+            );
+            RenderTransaction(
+                rendered,
+                transaction
+            );
             FlushRecord(rendered);
         } catch (...) {
             // Diagnostics must never be capable of failing the Event transport
