@@ -1,20 +1,29 @@
 #pragma once
 
 #if !__has_include(<ESPressio_EventTransport.hpp>)
-#error "ESPressio EventMonitor requires ESPressio Event >= 5.6.2 < 6.0.0."
+#error "ESPressio EventMonitor requires ESPressio Event transport support."
 #endif
 
 #if !__has_include(<ESPressio_BinaryArchiveTraversal.hpp>)
-#error "ESPressio EventMonitor requires ESPressio Serializable >= 0.10.1 < 1.0.0."
+#error "ESPressio EventMonitor requires ESPressio Serializable BinaryArchive traversal support."
+#endif
+
+#if !__has_include(<ESPressio_Task.hpp>)
+#error "ESPressio EventMonitor requires ESPressio Task support."
 #endif
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <new>
+#include <string_view>
+#include <type_traits>
+#include <utility>
 
 #include <ESPressio_EventTransport.hpp>
 #include <ESPressio_Memory.hpp>
+#include <ESPressio_Task.hpp>
 
 #include "../console/ESPressio_Console.hpp"
 #include "../ESPressio_SerialTypes.hpp"
@@ -24,7 +33,12 @@
 namespace ESPressio::Serial {
 
 /// <summary>Writes Event transport transactions and optional payload representations to an ESPressio byte-output sink.</summary>
-/// <remarks>Each diagnostic record is first composed into a bounded System <c>ExternalPreferred</c> buffer and then emitted with one bulk sink write. This keeps repeated formatting/output calls off the observed Event transport worker's constrained stack and greatly reduces cross-task output interleaving. Structured payload traversal remains bounded by the configured depth, node, collection, string, and rendered-byte limits.</remarks>
+/// <remarks>
+/// Event transport callbacks only capture a bounded, owned transaction snapshot into System
+/// <c>ExternalPreferred</c> memory and submit a pointer to a dedicated bounded diagnostic worker.
+/// Formatting, BinaryArchive traversal, numeric conversion, and output therefore never execute on
+/// the observed Event transport worker's constrained stack.
+/// </remarks>
 class EventMonitor final :
     public Event::IEventTransportManagerObserver {
 
@@ -32,6 +46,74 @@ private:
     using RenderBuffer = System::Memory::String<
         System::Memory::MemoryPolicy::ExternalPreferred
     >;
+
+    using SnapshotString = System::Memory::String<
+        System::Memory::MemoryPolicy::ExternalPreferred
+    >;
+
+    using SnapshotBytes = System::Memory::Vector<
+        uint8_t,
+        System::Memory::MemoryPolicy::ExternalPreferred
+    >;
+
+    static constexpr uint32_t DiagnosticWorkerStackSize = 4096;
+    static constexpr std::size_t DiagnosticQueueDepth = 4;
+
+    /// <summary>Owns every transient view required to render a transaction after its originating callback returns.</summary>
+    struct TransactionSnapshot {
+        System::Memory::IMemoryProvider* Provider = nullptr;
+        Event::EventTransportTransaction Transaction{};
+        SnapshotString EventTypeName;
+        SnapshotBytes Payload;
+        EventMonitorConfig Config{};
+        Print* Output = nullptr;
+
+        TransactionSnapshot(
+            System::Memory::IMemoryProvider& provider,
+            const Event::EventTransportTransaction& transaction,
+            const EventMonitorConfig& config,
+            Print* output
+        ) :
+            Provider(&provider),
+            Transaction(transaction),
+            Config(config),
+            Output(output) {
+
+            if (!transaction.EventTypeName.empty()) {
+                EventTypeName.assign(
+                    transaction.EventTypeName.data(),
+                    transaction.EventTypeName.size()
+                );
+            }
+
+            if (
+                transaction.Payload != nullptr &&
+                transaction.PayloadSize != 0
+            ) {
+                Payload.assign(
+                    transaction.Payload,
+                    transaction.Payload + transaction.PayloadSize
+                );
+            }
+
+            Transaction.EventTypeName = EventTypeName;
+            Transaction.Payload =
+                Payload.empty()
+                    ? nullptr
+                    : Payload.data();
+            Transaction.PayloadSize = Payload.size();
+        }
+    };
+
+    /// <summary>Trivially-copyable queue item used by the bounded TaskExecutor.</summary>
+    struct DiagnosticWorkItem {
+        TransactionSnapshot* Snapshot = nullptr;
+    };
+
+    static_assert(
+        std::is_trivially_copyable<DiagnosticWorkItem>::value,
+        "EventMonitor diagnostic work items must remain trivially copyable"
+    );
 
     /// <summary>Bounded byte sink used while composing one Event diagnostic record.</summary>
     class BufferedOutput final : public System::IO::IByteOutput {
@@ -71,9 +153,6 @@ private:
                 return System::PlatformResult::Succeeded();
             }
 
-            // Formatting is best-effort diagnostics. Once the configured bound
-            // has been reached, consume the remaining logical writes without
-            // extending the buffer so callers do not repeatedly retry them.
             if (
                 _maximumBytes == 0 ||
                 _buffer.size() >= _maximumBytes ||
@@ -138,6 +217,20 @@ private:
         bool _renderFailed = false;
     };
 
+    static Task::TaskConfiguration MakeWorkerConfiguration() noexcept {
+        Task::TaskConfiguration configuration;
+        configuration.Name = "EventDiagnostic";
+        configuration.StackSize = DiagnosticWorkerStackSize;
+        configuration.Priority = 1;
+        configuration.Core = -1;
+        configuration.QueueDepth = DiagnosticQueueDepth;
+        configuration.OverflowPolicy =
+            Task::TaskQueueOverflowPolicy::Reject;
+        configuration.MemoryPolicy =
+            Task::TaskMemoryPolicy::Internal;
+        return configuration;
+    }
+
     Print* _output = nullptr;
 
     Event::EventTransportManager*
@@ -148,17 +241,101 @@ private:
     Observable::ObserverHandlePtr
         _observerHandle;
 
+    Task::TaskExecutor<DiagnosticWorkItem>
+        _worker{MakeWorkerConfiguration()};
+
     mutable std::mutex _mutex;
 
     bool _initialized = false;
 
-    void FlushRecord(BufferedOutput& rendered) noexcept {
-        if (_output == nullptr) return;
+    static TransactionSnapshot* CreateSnapshot(
+        const Event::EventTransportTransaction& transaction,
+        const EventMonitorConfig& config,
+        Print* output
+    ) noexcept {
+        auto& provider =
+            System::Memory::GetProvider();
+
+        void* storage = nullptr;
+
+        try {
+            storage = provider.Allocate(
+                sizeof(TransactionSnapshot),
+                alignof(TransactionSnapshot),
+                System::Memory::MemoryPolicy::ExternalPreferred
+            );
+
+            if (storage == nullptr) {
+                return nullptr;
+            }
+
+            return new (storage) TransactionSnapshot(
+                provider,
+                transaction,
+                config,
+                output
+            );
+        } catch (...) {
+            if (storage != nullptr) {
+                provider.Deallocate(
+                    storage,
+                    sizeof(TransactionSnapshot),
+                    alignof(TransactionSnapshot),
+                    System::Memory::MemoryPolicy::ExternalPreferred
+                );
+            }
+
+            return nullptr;
+        }
+    }
+
+    static void DestroySnapshot(
+        TransactionSnapshot* snapshot
+    ) noexcept {
+        if (snapshot == nullptr) {
+            return;
+        }
+
+        auto* provider = snapshot->Provider;
+
+        snapshot->~TransactionSnapshot();
+
+        if (provider != nullptr) {
+            provider->Deallocate(
+                snapshot,
+                sizeof(TransactionSnapshot),
+                alignof(TransactionSnapshot),
+                System::Memory::MemoryPolicy::ExternalPreferred
+            );
+        }
+    }
+
+    static void WriteFallback(
+        Print* output,
+        const char* text
+    ) noexcept {
+        if (output == nullptr || text == nullptr) {
+            return;
+        }
+
+        output->print(text);
+    }
+
+    static void FlushRecord(
+        Print* output,
+        BufferedOutput& rendered
+    ) noexcept {
+        if (output == nullptr) {
+            return;
+        }
 
         const auto& buffer = rendered.Buffer();
+
         if (!buffer.empty()) {
-            (void)_output->write(
-                reinterpret_cast<const uint8_t*>(buffer.data()),
+            (void)output->write(
+                reinterpret_cast<const uint8_t*>(
+                    buffer.data()
+                ),
                 buffer.size()
             );
         }
@@ -166,43 +343,52 @@ private:
         if (rendered.RenderFailed()) {
             static constexpr char marker[] =
                 "\n  <diagnostic-render-failed>\n";
-            (void)_output->write(
-                reinterpret_cast<const uint8_t*>(marker),
+
+            (void)output->write(
+                reinterpret_cast<const uint8_t*>(
+                    marker
+                ),
                 sizeof(marker) - 1
             );
         } else if (rendered.Truncated()) {
             static constexpr char marker[] =
                 "\n  <diagnostic-output-truncated>\n";
-            (void)_output->write(
-                reinterpret_cast<const uint8_t*>(marker),
+
+            (void)output->write(
+                reinterpret_cast<const uint8_t*>(
+                    marker
+                ),
                 sizeof(marker) - 1
             );
         }
     }
 
-    void RenderTransaction(
+    static void RenderTransaction(
         BufferedOutput& rendered,
-        const Event::EventTransportTransaction& transaction
+        const Event::EventTransportTransaction& transaction,
+        const EventMonitorConfig& config
     ) {
-        Print& writer = rendered.Writer();
+        Print& writer =
+            rendered.Writer();
 
         if (
-            _config.PayloadFormat !=
+            config.PayloadFormat !=
                 EventMonitorPayloadFormat::Structured
         ) {
             EventMonitorFormatter::PrintTransaction(
                 writer,
                 transaction,
-                _config
+                config
             );
+
             return;
         }
 
-        // Print metadata through the established formatter, but suppress its
-        // legacy tree-building structured payload path. The payload itself is
-        // traversed directly from ESPB bytes without constructing a second DOM.
-        EventMonitorConfig metadataConfig = _config;
-        metadataConfig.PayloadFormat = EventMonitorPayloadFormat::None;
+        EventMonitorConfig metadataConfig =
+            config;
+
+        metadataConfig.PayloadFormat =
+            EventMonitorPayloadFormat::None;
 
         EventMonitorFormatter::PrintTransaction(
             writer,
@@ -217,21 +403,79 @@ private:
                 writer,
                 transaction.Payload,
                 transaction.PayloadSize,
-                _config
+                config
             )
         ) {
             writer.println();
             return;
         }
 
-        writer.print("<invalid-or-outside-monitor-limits> ");
+        writer.print(
+            "<invalid-or-outside-monitor-limits> "
+        );
+
         PrintEventPayloadHexFallback(
             writer,
             transaction.Payload,
             transaction.PayloadSize,
-            _config
+            config
         );
+
         writer.println();
+    }
+
+    static void ProcessWorkItem(
+        const DiagnosticWorkItem& item
+    ) noexcept {
+        TransactionSnapshot* snapshot =
+            item.Snapshot;
+
+        if (snapshot == nullptr) {
+            return;
+        }
+
+        Print* output =
+            snapshot->Output;
+
+        try {
+            BufferedOutput rendered(
+                snapshot->Config.MaximumRenderedBytes
+            );
+
+            RenderTransaction(
+                rendered,
+                snapshot->Transaction,
+                snapshot->Config
+            );
+
+            FlushRecord(
+                output,
+                rendered
+            );
+        } catch (...) {
+            WriteFallback(
+                output,
+                "[ESPressio Event] <diagnostic-render-failed>\n"
+            );
+        }
+
+        DestroySnapshot(snapshot);
+    }
+
+    void DrainWorker() noexcept {
+        for (;;) {
+            const auto statistics =
+                _worker.GetStatistics();
+
+            if (
+                statistics.Completed >=
+                statistics.Submitted
+            ) {
+                return;
+            }
+
+            Task::TaskRuntime::SleepMilliseconds(1);
+        }
     }
 
 public:
@@ -250,11 +494,11 @@ public:
         Shutdown();
     }
 
-    /// <summary>Registers the monitor with an Event transport manager and selects its output/configuration.</summary>
+    /// <summary>Registers the monitor with an Event transport manager and starts its isolated diagnostic worker.</summary>
     /// <param name="output">Destination for formatted transaction diagnostics.</param>
     /// <param name="config">Visibility and payload-format limits.</param>
     /// <param name="manager">Transport manager to observe; defaults to the process-wide singleton.</param>
-    /// <returns>True when the observer registration is active.</returns>
+    /// <returns>True when both the diagnostic worker and observer registration are active.</returns>
     bool Initialize(
         Print& output,
         const EventMonitorConfig&
@@ -271,6 +515,28 @@ public:
             return true;
         }
 
+        const auto initialization =
+            _worker.Initialize(
+                [](const DiagnosticWorkItem& item) {
+                    ProcessWorkItem(item);
+                }
+            );
+
+        if (
+            initialization !=
+            Task::TaskExecutionStatus::Success
+        ) {
+            return false;
+        }
+
+        if (
+            _worker.Start() !=
+            Task::TaskExecutionStatus::Success
+        ) {
+            _worker.Stop();
+            return false;
+        }
+
         _output = &output;
         _config = config;
         _manager = &manager;
@@ -283,6 +549,7 @@ public:
         if (!_observerHandle) {
             _output = nullptr;
             _manager = nullptr;
+            _worker.Stop();
             return false;
         }
 
@@ -290,7 +557,7 @@ public:
         return true;
     }
 
-    /// <summary>Unregisters from the transport manager and releases monitor references.</summary>
+    /// <summary>Stops observing, drains accepted diagnostic snapshots, and releases the isolated worker.</summary>
     void Shutdown() {
         Observable::ObserverHandlePtr
             handle;
@@ -303,17 +570,27 @@ public:
                 return;
             }
 
+            _initialized = false;
+
             handle =
                 std::move(
                     _observerHandle
                 );
-
-            _initialized = false;
-            _output = nullptr;
-            _manager = nullptr;
         }
 
         handle.reset();
+
+        DrainWorker();
+
+        _worker.Stop();
+
+        {
+            std::lock_guard<std::mutex>
+                lock(_mutex);
+
+            _output = nullptr;
+            _manager = nullptr;
+        }
     }
 
     /// <summary>Reports whether the monitor is currently registered with a transport manager.</summary>
@@ -333,7 +610,7 @@ public:
         return _config;
     }
 
-    /// <summary>Replaces the transaction visibility and payload-format configuration used by subsequent callbacks.</summary>
+    /// <summary>Replaces the transaction visibility and payload-format configuration copied into subsequent diagnostic snapshots.</summary>
     void SetConfig(
         const EventMonitorConfig& config
     ) {
@@ -343,8 +620,13 @@ public:
         _config = config;
     }
 
-    /// <summary>Formats a visible Event transport transaction into external working memory and flushes it to the selected sink as one bounded record.</summary>
-    /// <remarks>Rendering failures are contained inside the diagnostic observer so optional monitoring cannot terminate or corrupt the observed transport worker.</remarks>
+    /// <summary>Captures a bounded owned transaction snapshot and queues it for diagnostic rendering outside the Event transport worker.</summary>
+    /// <remarks>
+    /// The callback performs no BinaryArchive traversal, numeric formatting, or Serial output. Snapshot
+    /// storage uses the ESPressio System <c>ExternalPreferred</c> memory policy. When the bounded
+    /// diagnostic queue is full or snapshot allocation fails, that diagnostic record is dropped rather
+    /// than blocking or destabilizing the observed transport path.
+    /// </remarks>
     void OnEventTransportTransaction(
         const Event::EventTransportTransaction&
             transaction
@@ -364,25 +646,25 @@ public:
             return;
         }
 
-        try {
-            BufferedOutput rendered(
-                _config.MaximumRenderedBytes
+        TransactionSnapshot* snapshot =
+            CreateSnapshot(
+                transaction,
+                _config,
+                _output
             );
-            RenderTransaction(
-                rendered,
-                transaction
-            );
-            FlushRecord(rendered);
-        } catch (...) {
-            // Diagnostics must never be capable of failing the Event transport
-            // path they observe. Keep the fallback deliberately small and free
-            // of structured traversal/allocation.
-            static constexpr char failure[] =
-                "[ESPressio Event] <diagnostic-render-failed>\n";
-            (void)_output->write(
-                reinterpret_cast<const uint8_t*>(failure),
-                sizeof(failure) - 1
-            );
+
+        if (snapshot == nullptr) {
+            return;
+        }
+
+        DiagnosticWorkItem item;
+        item.Snapshot = snapshot;
+
+        if (
+            _worker.Submit(item) !=
+            Task::TaskExecutionStatus::Success
+        ) {
+            DestroySnapshot(snapshot);
         }
     }
 };
