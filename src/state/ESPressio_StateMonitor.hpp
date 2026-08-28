@@ -10,6 +10,8 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Writes remote-state, subscription, subscriber, publisher, and publication-tracker activity to an Arduino Print sink.</summary>
+/// <remarks>Each State subsystem may be observed independently; Shutdown releases all active observer registrations.</remarks>
 class StateMonitor final :
     public ESPressio::State::IRemoteStateManagerObserver,
     public ESPressio::State::IStateSubscriptionRegistryObserver,
@@ -74,6 +76,8 @@ class StateMonitor final :
     }
 
 public:
+    /// <summary>Observes one RemoteStateManager instance.</summary>
+    /// <returns>True when the remote-state observer registration is active.</returns>
     template<typename TContract, std::size_t TMaximumDevices>
     bool ObserveRemoteState(
         ESPressio::State::RemoteStateManager<TContract, TMaximumDevices>& manager,
@@ -87,6 +91,8 @@ public:
         return static_cast<bool>(_remoteStateHandle);
     }
 
+    /// <summary>Observes one local State subscription registry.</summary>
+    /// <returns>True when the subscription-registry observer registration is active.</returns>
     template<std::size_t TCapacity>
     bool ObserveSubscriptions(
         ESPressio::State::StateSubscriptionRegistry<TCapacity>& registry,
@@ -100,6 +106,8 @@ public:
         return static_cast<bool>(_subscriptionHandle);
     }
 
+    /// <summary>Observes one remote-subscriber registry.</summary>
+    /// <returns>True when the subscriber-registry observer registration is active.</returns>
     template<typename TContract, std::size_t TMaximumSubscribers>
     bool ObserveSubscribers(
         ESPressio::State::StateSubscriberRegistry<TContract, TMaximumSubscribers>& registry,
@@ -113,6 +121,8 @@ public:
         return static_cast<bool>(_subscriberHandle);
     }
 
+    /// <summary>Observes one StatePublisher instance.</summary>
+    /// <returns>True when the publisher observer registration is active.</returns>
     template<typename TContract>
     bool ObservePublisher(
         ESPressio::State::StatePublisher<TContract>& publisher,
@@ -126,6 +136,8 @@ public:
         return static_cast<bool>(_publisherHandle);
     }
 
+    /// <summary>Observes publication acknowledgement/supersession tracking for one State definition.</summary>
+    /// <returns>True when the publication-tracker observer registration is active.</returns>
     template<typename TDefinition>
     bool ObservePublications(
         ESPressio::State::StatePublicationTracker<TDefinition>& tracker,
@@ -139,6 +151,7 @@ public:
         return static_cast<bool>(_publicationHandle);
     }
 
+    /// <summary>Releases every active State observer registration and the output sink reference.</summary>
     void Shutdown() {
         _publicationHandle.reset();
         _publisherHandle.reset();
@@ -148,81 +161,97 @@ public:
         _output = nullptr;
     }
 
+    /// <inheritdoc/>
     void OnRemoteStateDeviceRegistered(const ESPressio::State::DeviceIdentifier& device) override {
         Prefix("DeviceRegistered"); _output->print(" device="); Device(device); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnRemoteStateAccepted(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
         ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision, bool changed) override {
         Prefix("Accepted"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision);
         _output->print(" changed="); _output->println(changed ? "true" : "false");
     }
 
+    /// <inheritdoc/>
     void OnRemoteStateRejected(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
         ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
         Prefix("Rejected"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnRemoteStateAvailabilityChanged(const ESPressio::State::DeviceIdentifier& device,
         ESPressio::State::RemoteDeviceAvailability previous, ESPressio::State::RemoteDeviceAvailability current) override {
         Prefix("Availability"); _output->print(" device="); Device(device); _output->print(" previous=");
         _output->print(AvailabilityName(previous)); _output->print(" current="); _output->println(AvailabilityName(current));
     }
 
+    /// <inheritdoc/>
     void OnStateSubscribed(ESPressio::State::StateTypeId typeId, ESPressio::State::StateSubscriptionScope,
         const ESPressio::State::DeviceIdentifier& device) override {
         Prefix("Subscribed"); Type(typeId); _output->print(" device=");
         if (device.IsZero()) _output->print("ANY"); else Device(device); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnStateUnsubscribed(ESPressio::State::StateTypeId typeId, ESPressio::State::StateSubscriptionScope,
         const ESPressio::State::DeviceIdentifier& device) override {
         Prefix("Unsubscribed"); Type(typeId); _output->print(" device=");
         if (device.IsZero()) _output->print("ANY"); else Device(device); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnStateSubscriptionCapacityExhausted(ESPressio::State::StateTypeId typeId,
         ESPressio::State::StateSubscriptionScope, const ESPressio::State::DeviceIdentifier& device) override {
         Prefix("SubscriptionCapacityExhausted"); Type(typeId); if (!device.IsZero()) { _output->print(" device="); Device(device); } _output->println();
     }
 
+    /// <inheritdoc/>
     void OnRemoteStateSubscriberAdded(const ESPressio::State::DeviceIdentifier& device,
         ESPressio::State::StateTypeId typeId) override {
         Prefix("RemoteSubscriberAdded"); _output->print(" device="); Device(device); Type(typeId); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnRemoteStateSubscriberRemoved(const ESPressio::State::DeviceIdentifier& device,
         ESPressio::State::StateTypeId typeId) override {
         Prefix("RemoteSubscriberRemoved"); _output->print(" device="); Device(device); Type(typeId); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnRemoteStateSubscriberDeviceRemoved(const ESPressio::State::DeviceIdentifier& device) override {
         Prefix("RemoteSubscriberDeviceRemoved"); _output->print(" device="); Device(device); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnRemoteStateSubscriberCapacityExhausted(const ESPressio::State::DeviceIdentifier& device,
         ESPressio::State::StateTypeId typeId) override {
         Prefix("RemoteSubscriberCapacityExhausted"); _output->print(" device="); Device(device); Type(typeId); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnStateSourceRegistered(ESPressio::State::StateTypeId typeId) override {
         Prefix("SourceRegistered"); Type(typeId); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnStateSourceUnregistered(ESPressio::State::StateTypeId typeId) override {
         Prefix("SourceUnregistered"); Type(typeId); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnStatePublished(ESPressio::State::StateTypeId typeId, ESPressio::State::StateEpoch epoch,
         ESPressio::State::StateRevision revision) override {
         Prefix("Published"); Type(typeId); Revision("revision", epoch, revision); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnStatePublicationPending(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
         ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
         Prefix("PublicationPending"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnStatePublicationSuperseded(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
         ESPressio::State::StateEpoch previousEpoch, ESPressio::State::StateRevision previousRevision,
         ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
@@ -230,11 +259,13 @@ public:
         Revision("previous", previousEpoch, previousRevision); Revision("latest", epoch, revision); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnStatePublicationAcknowledged(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
         ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
         Prefix("Acknowledged"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision); _output->println();
     }
 
+    /// <inheritdoc/>
     void OnStatePublicationStaleAcknowledgement(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
         ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
         Prefix("StaleAcknowledgement"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision); _output->println();
