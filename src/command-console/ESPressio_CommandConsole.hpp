@@ -20,6 +20,8 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Integrates ESPressio Command parsing/execution with the line-oriented Serial Console.</summary>
+/// <remarks>Recognized console lines enter Command through the asynchronous inbound Event/envelope path; explicit Execute calls remain synchronous local invocations.</remarks>
 class CommandConsole final {
 private:
     class ResponseRoute final : public Command::ICommandResponseRoute {
@@ -124,6 +126,10 @@ public:
     CommandConsole& operator=(const CommandConsole&) = delete;
     ~CommandConsole() { Shutdown(); }
 
+    /// <summary>Attaches Command handling to an initialized Console and registers a response route for asynchronous completions.</summary>
+    /// <param name="console">Initialized console whose lines will be intercepted.</param>
+    /// <param name="registry">Command registry used for recognition and direct execution.</param>
+    /// <returns>True when both the response route and line interceptor are registered.</returns>
     bool Initialize(
         Console& console,
         Command::CommandRegistry& registry = Command::CommandRegistry::GetInstance()
@@ -157,6 +163,7 @@ public:
         return true;
     }
 
+    /// <summary>Removes the Console interceptor and Command response route and clears all non-owning references.</summary>
     void Shutdown() {
         if (_console != nullptr && _interceptorID != 0) {
             _console->UnregisterLineInterceptor(_interceptorID);
@@ -179,6 +186,7 @@ public:
         _output = nullptr;
     }
 
+    /// <summary>Reports whether the Console, Command registry, interceptor, and response route are all attached.</summary>
     bool GetIsInitialized() const noexcept {
         return
             _console != nullptr &&
@@ -187,11 +195,13 @@ public:
             _responseRouteId != 0;
     }
 
+    /// <summary>Returns the attached non-owning Command registry.</summary>
     Command::CommandRegistry* GetRegistry() const noexcept { return _registry; }
+    /// <summary>Returns the attached non-owning Console.</summary>
     Console* GetConsole() const noexcept { return _console; }
 
-    // Explicit programmatic execution remains synchronous by design. This is
-    // the direct/local Command path rather than transport-style ingress.
+    /// <summary>Executes a Command synchronously through the direct/local registry path and prints any result message.</summary>
+    /// <remarks>This method intentionally bypasses the asynchronous transport-style console ingress path.</remarks>
     Command::CommandResult Execute(std::string_view line) {
         if (_registry == nullptr) {
             return Command::CommandResult::Error("CommandConsole is not initialized");
