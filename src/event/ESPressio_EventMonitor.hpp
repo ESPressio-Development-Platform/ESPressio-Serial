@@ -19,6 +19,8 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Writes Event transport transactions and optional payload representations to an Arduino Print sink.</summary>
+/// <remarks>Structured payload output traverses the serialized ESPB payload directly and applies the configured depth, node, collection, and string limits.</remarks>
 class EventMonitor final :
     public Event::IEventTransportManagerObserver {
 
@@ -56,6 +58,11 @@ public:
     }
 
 
+    /// <summary>Registers the monitor with an Event transport manager and selects its output/configuration.</summary>
+    /// <param name="output">Destination for formatted transaction diagnostics.</param>
+    /// <param name="config">Visibility and payload-format limits.</param>
+    /// <param name="manager">Transport manager to observe; defaults to the process-wide singleton.</param>
+    /// <returns>True when the observer registration is active.</returns>
     bool Initialize(
         Print& output,
         const EventMonitorConfig&
@@ -92,6 +99,7 @@ public:
     }
 
 
+    /// <summary>Unregisters from the transport manager and releases monitor references.</summary>
     void Shutdown() {
         Observable::ObserverHandlePtr
             handle;
@@ -118,6 +126,7 @@ public:
     }
 
 
+    /// <summary>Reports whether the monitor is currently registered with a transport manager.</summary>
     bool GetIsInitialized() const {
         std::lock_guard<std::mutex>
             lock(_mutex);
@@ -126,6 +135,7 @@ public:
     }
 
 
+    /// <summary>Returns a copy of the current transaction visibility and payload-format configuration.</summary>
     EventMonitorConfig
     GetConfig() const {
         std::lock_guard<std::mutex>
@@ -135,6 +145,7 @@ public:
     }
 
 
+    /// <summary>Replaces the transaction visibility and payload-format configuration used by subsequent callbacks.</summary>
     void SetConfig(
         const EventMonitorConfig& config
     ) {
@@ -145,6 +156,8 @@ public:
     }
 
 
+    /// <summary>Formats a visible Event transport transaction according to the active monitor configuration.</summary>
+    /// <remarks>When structured payload traversal exceeds validation or configured limits, a bounded hexadecimal fallback is emitted instead.</remarks>
     void OnEventTransportTransaction(
         const Event::EventTransportTransaction&
             transaction
