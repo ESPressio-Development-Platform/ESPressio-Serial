@@ -64,6 +64,9 @@ struct EventMonitorConfig {
     /// <summary>Whether structured payloads are pretty-printed.</summary>
     bool PrettyStructuredPayload = true;
 
+    /// <summary>Maximum complete diagnostic record bytes composed before one serialized write to the output sink.</summary>
+    /// <remarks>The buffer is backed by the ESPressio System ExternalPreferred memory policy so verbose diagnostics do not consume scarce internal heap. Output beyond this bound is truncated.</remarks>
+    std::size_t MaximumRenderedBytes = 4096;
     /// <summary>Maximum payload bytes rendered in hexadecimal form.</summary>
     std::size_t MaximumHexPayloadBytes = 256;
     /// <summary>Maximum collection elements rendered from a structured payload.</summary>
