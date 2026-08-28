@@ -10,6 +10,7 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Writes Socket security-session fault and reset activity to an Arduino Print sink.</summary>
 class SocketSecuritySessionMonitor final :
     public ESPressio::Sockets::ISocketSecuritySessionObserver {
 private:
@@ -17,6 +18,8 @@ private:
     ESPressio::Observable::ObserverHandlePtr _handle;
 
 public:
+    /// <summary>Registers the monitor with a SocketSecuritySession and selects its output sink.</summary>
+    /// <returns>True when the observer registration is active.</returns>
     bool Initialize(Print& output, ESPressio::Sockets::SocketSecuritySession& session) {
         if (_handle) return true;
         _output = &output;
@@ -25,11 +28,13 @@ public:
         return true;
     }
 
+    /// <summary>Unregisters from the security session and releases the output sink reference.</summary>
     void Shutdown() {
         _handle.reset();
         _output = nullptr;
     }
 
+    /// <inheritdoc/>
     void OnSocketSecuritySessionFaulted(const ESPressio::Security::SecurityResult& result) override {
         if (!_output) return;
         _output->print("[ESPressio Sockets] [SecuritySession] Faulted error=");
@@ -41,6 +46,7 @@ public:
         _output->println();
     }
 
+    /// <inheritdoc/>
     void OnSocketSecuritySessionReset() override {
         if (!_output) return;
         _output->println("[ESPressio Sockets] [SecuritySession] Reset");
