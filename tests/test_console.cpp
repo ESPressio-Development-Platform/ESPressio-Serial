@@ -1,49 +1,54 @@
 #include <cassert>
+#include <cstring>
 #include <limits>
 #include <string>
 
 #include <ESPressio_Console.hpp>
 
 class TestStream final :
-    public Stream {
+    public ESPressio::System::IO::IByteStream {
 
 public:
     std::string Input;
     std::string Output;
     std::size_t ReadOffset = 0;
 
-    std::size_t write(
-        uint8_t value
-    ) override {
-        Output.push_back(
-            static_cast<char>(value)
-        );
-
-        return 1;
+    std::size_t Available() const noexcept override {
+        return Input.size() - ReadOffset;
     }
 
-    int available() override {
-        return
-            static_cast<int>(
-                Input.size() -
-                ReadOffset
+    ESPressio::System::PlatformResult Read(uint8_t& value) noexcept override {
+        if (ReadOffset >= Input.size()) {
+            return ESPressio::System::PlatformResult::Failed(
+                ESPressio::System::PlatformStatus::Unavailable
             );
-    }
-
-    int read() override {
-        if (
-            ReadOffset >=
-            Input.size()
-        ) {
-            return -1;
         }
+        value = static_cast<uint8_t>(Input[ReadOffset++]);
+        return ESPressio::System::PlatformResult::Succeeded();
+    }
 
-        return
-            static_cast<unsigned char>(
-                Input[
-                    ReadOffset++
-                ]
+    ESPressio::System::PlatformResult Write(
+        const uint8_t* data,
+        std::size_t size,
+        std::size_t& bytesWritten
+    ) noexcept override {
+        bytesWritten = 0;
+        if (data == nullptr && size != 0) {
+            return ESPressio::System::PlatformResult::Failed(
+                ESPressio::System::PlatformStatus::InvalidArgument
             );
+        }
+        try {
+            if (size != 0) {
+                Output.append(reinterpret_cast<const char*>(data), size);
+            }
+            bytesWritten = size;
+            return ESPressio::System::PlatformResult::Succeeded();
+        } catch (...) {
+            return ESPressio::System::PlatformResult::Failed(
+                ESPressio::System::PlatformStatus::OutOfMemory
+            );
+        }
     }
 };
 
