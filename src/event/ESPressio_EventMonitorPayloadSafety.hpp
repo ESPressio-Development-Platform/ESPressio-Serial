@@ -14,6 +14,9 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Builds bounded BinaryArchive traversal limits from Event monitor configuration.</summary>
+/// <param name="config">Event monitor limits governing depth, node count, collection size, and strings.</param>
+/// <returns>Decode limits suitable for validating and traversing monitored Event payloads.</returns>
 inline Serializable::BinaryArchiveDecodeLimits
 BuildEventMonitorDecodeLimits(
     const EventMonitorConfig& config
@@ -67,6 +70,11 @@ BuildEventMonitorDecodeLimits(
 }
 
 
+/// <summary>Validates that a structured Event payload can be traversed within the configured safety limits.</summary>
+/// <param name="payload">BinaryArchive payload bytes.</param>
+/// <param name="size">Payload size in bytes.</param>
+/// <param name="config">Event monitor safety limits.</param>
+/// <returns><c>true</c> when the payload is structurally valid and remains within all configured limits.</returns>
 inline bool ValidateStructuredEventPayload(
     const uint8_t* payload,
     std::size_t size,
@@ -144,6 +152,8 @@ inline void PrintEscapedString(
 }
 
 
+/// <summary>Allocation-free BinaryArchive visitor that renders a bounded structured Event payload to an Arduino Print sink.</summary>
+/// <remarks>Traversal limits are enforced by the caller before and during visitation; strings are additionally truncated to the monitor's configured maximum length.</remarks>
 class StructuredPayloadPrinter final :
     public Serializable::BinaryArchiveVisitor {
 private:
@@ -189,6 +199,7 @@ private:
     }
 
 public:
+    /// <summary>Creates a structured payload renderer over the supplied output and monitor configuration.</summary>
     StructuredPayloadPrinter(
         Print& output,
         const EventMonitorConfig& config
@@ -197,6 +208,7 @@ public:
         _config(config) {
     }
 
+    /// <inheritdoc/>
     bool OnObjectBegin(
         uint32_t,
         std::size_t
@@ -205,6 +217,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnObjectProperty(
         std::string_view name,
         uint32_t index,
@@ -225,6 +238,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnObjectEnd(
         uint32_t count,
         std::size_t depth
@@ -233,6 +247,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnArrayBegin(
         uint32_t,
         std::size_t
@@ -241,6 +256,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnArrayElement(
         uint32_t index,
         uint32_t,
@@ -250,6 +266,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnArrayEnd(
         uint32_t count,
         std::size_t depth
@@ -258,6 +275,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnNull(
         std::size_t
     ) noexcept override {
@@ -265,6 +283,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnBoolean(
         bool value,
         std::size_t
@@ -273,6 +292,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnSignedInteger(
         int64_t value,
         std::size_t
@@ -288,6 +308,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnUnsignedInteger(
         uint64_t value,
         std::size_t
@@ -303,6 +324,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnFloat32(
         float value,
         std::size_t
@@ -318,6 +340,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnFloat64(
         double value,
         std::size_t
@@ -333,6 +356,7 @@ public:
         return true;
     }
 
+    /// <inheritdoc/>
     bool OnString(
         std::string_view value,
         std::size_t
@@ -387,6 +411,13 @@ inline void PrintHexPayload(
 } // namespace EventMonitorPayloadSafetyDetail
 
 
+/// <summary>Renders a validated BinaryArchive Event payload in structured form without allocating a DOM tree.</summary>
+/// <param name="output">Destination Print sink.</param>
+/// <param name="payload">BinaryArchive payload bytes.</param>
+/// <param name="size">Payload size in bytes.</param>
+/// <param name="config">Formatting and traversal limits.</param>
+/// <returns><c>true</c> when the payload is empty or was validated and traversed successfully; otherwise <c>false</c>.</returns>
+/// <remarks>The payload is validated before rendering so malformed input never leaves a partially rendered structured diagnostic line.</remarks>
 inline bool PrintStructuredEventPayload(
     Print& output,
     const uint8_t* payload,
@@ -431,6 +462,11 @@ inline bool PrintStructuredEventPayload(
 }
 
 
+/// <summary>Renders a bounded hexadecimal fallback representation of an Event payload.</summary>
+/// <param name="output">Destination Print sink.</param>
+/// <param name="payload">Payload bytes, or <c>nullptr</c> for no payload.</param>
+/// <param name="size">Payload size in bytes.</param>
+/// <param name="config">Event monitor configuration supplying the maximum number of bytes to print.</param>
 inline void PrintEventPayloadHexFallback(
     Print& output,
     const uint8_t* payload,
