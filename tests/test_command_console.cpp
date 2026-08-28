@@ -5,15 +5,41 @@
 #include <ESPressio_CommandEvents.hpp>
 #include <ESPressio_CommandResponseRoute.hpp>
 
-class TestStream final : public Stream {
+class TestStream final : public ESPressio::System::IO::IByteStream {
 public:
     std::string Output;
-    std::size_t write(uint8_t value) override {
-        Output.push_back(static_cast<char>(value));
-        return 1;
+
+    std::size_t Available() const noexcept override { return 0; }
+
+    ESPressio::System::PlatformResult Read(uint8_t&) noexcept override {
+        return ESPressio::System::PlatformResult::Failed(
+            ESPressio::System::PlatformStatus::Unavailable
+        );
     }
-    int available() override { return 0; }
-    int read() override { return -1; }
+
+    ESPressio::System::PlatformResult Write(
+        const uint8_t* data,
+        std::size_t size,
+        std::size_t& bytesWritten
+    ) noexcept override {
+        bytesWritten = 0;
+        if (data == nullptr && size != 0) {
+            return ESPressio::System::PlatformResult::Failed(
+                ESPressio::System::PlatformStatus::InvalidArgument
+            );
+        }
+        try {
+            if (size != 0) {
+                Output.append(reinterpret_cast<const char*>(data), size);
+            }
+            bytesWritten = size;
+            return ESPressio::System::PlatformResult::Succeeded();
+        } catch (...) {
+            return ESPressio::System::PlatformResult::Failed(
+                ESPressio::System::PlatformStatus::OutOfMemory
+            );
+        }
+    }
 };
 
 int main() {
