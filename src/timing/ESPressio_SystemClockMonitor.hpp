@@ -13,6 +13,7 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Writes System Clock mutation, synchronization, and scheduled-callback activity to an Arduino Print sink.</summary>
 template<typename TTick = ESPressio::Timing::ClockTick>
 class SystemClockMonitor final :
     public ESPressio::Timing::ISystemClockObserver<TTick> {
@@ -41,6 +42,10 @@ class SystemClockMonitor final :
     }
 
 public:
+    /// <summary>Registers the monitor with a System Clock and selects its output sink.</summary>
+    /// <param name="output">Destination for diagnostic lines.</param>
+    /// <param name="clock">System Clock to observe; defaults to the canonical default-time singleton.</param>
+    /// <returns>True when the observer registration is active.</returns>
     bool Initialize(
         Print& output,
         ESPressio::Timing::SystemClock<ESPressio::Timing::DefaultClockTime>& clock =
@@ -53,8 +58,10 @@ public:
         return static_cast<bool>(_handle);
     }
 
+    /// <summary>Unregisters from the clock and releases the output sink reference.</summary>
     void Shutdown() { _handle.reset(); _output = nullptr; }
 
+    /// <inheritdoc/>
     void OnSystemClockTimeSet(TTick before, TTick after, int64_t diff) override {
         Prefix("TimeSet");
         _output->print(" beforeNs="); UnsignedValue(static_cast<uint64_t>(before));
@@ -62,6 +69,7 @@ public:
         Difference(diff);
     }
 
+    /// <inheritdoc/>
     void OnSystemClockSynchronizationSampleAccepted(
         TTick before, TTick after, int64_t diff,
         const ESPressio::Timing::ClockSynchronizationResult<TTick>&,
@@ -73,6 +81,7 @@ public:
         Difference(diff);
     }
 
+    /// <inheritdoc/>
     void OnSystemClockSynchronized(
         TTick before, TTick after, int64_t diff,
         const ESPressio::Timing::ClockSynchronizationResult<TTick>&,
@@ -84,11 +93,13 @@ public:
         Difference(diff);
     }
 
+    /// <inheritdoc/>
     void OnSystemClockSynchronizationSampleRejected(
         const ESPressio::Timing::ClockSynchronizationResult<TTick>&,
         const ESPressio::Timing::ClockSynchronizationStatus<TTick>&
     ) override { Prefix("SynchronizationSampleRejected"); _output->println(); }
 
+    /// <inheritdoc/>
     void OnSystemClockSynchronizationStateChanged(
         ESPressio::Timing::ClockSynchronizationState previous,
         ESPressio::Timing::ClockSynchronizationState current,
@@ -99,34 +110,41 @@ public:
         _output->print(" current="); _output->println((int)current);
     }
 
+    /// <inheritdoc/>
     void OnSystemClockSynchronizationReset(
         const ESPressio::Timing::ClockSynchronizationStatus<TTick>&,
         const ESPressio::Timing::ClockSynchronizationStatus<TTick>&
     ) override { Prefix("SynchronizationReset"); _output->println(); }
 
+    /// <inheritdoc/>
     void OnSystemClockSynchronizationConfigurationChanged(
         const ESPressio::Timing::ClockSynchronizationConfig&,
         const ESPressio::Timing::ClockSynchronizationConfig&
     ) override { Prefix("SynchronizationConfigurationChanged"); _output->println(); }
 
+    /// <inheritdoc/>
     void OnSystemClockCallbackScheduled(TTick when) override {
         Prefix("CallbackScheduled"); _output->print(" scheduledNs="); _output->println((unsigned long long)when);
     }
+    /// <inheritdoc/>
     void OnSystemClockCallbackScheduleFailed(TTick when) override {
         Prefix("CallbackScheduleFailed"); _output->print(" scheduledNs="); _output->println((unsigned long long)when);
     }
+    /// <inheritdoc/>
     void OnSystemClockCallbackExecuted(TTick scheduled, TTick actual, int64_t diff) override {
         Prefix("CallbackExecuted");
         _output->print(" scheduledNs="); UnsignedValue(static_cast<uint64_t>(scheduled));
         _output->print(" actualNs="); UnsignedValue(static_cast<uint64_t>(actual));
         Difference(diff);
     }
+    /// <inheritdoc/>
     void OnSystemClockCallbackExecutionFailed(TTick scheduled, TTick actual, int64_t diff, std::exception_ptr) override {
         Prefix("CallbackExecutionFailed");
         _output->print(" scheduledNs="); UnsignedValue(static_cast<uint64_t>(scheduled));
         _output->print(" actualNs="); UnsignedValue(static_cast<uint64_t>(actual));
         Difference(diff);
     }
+    /// <inheritdoc/>
     void OnSystemClockCallbacksCleared(std::size_t count) override {
         Prefix("CallbacksCleared"); _output->print(" count="); _output->println((unsigned long)count);
     }
