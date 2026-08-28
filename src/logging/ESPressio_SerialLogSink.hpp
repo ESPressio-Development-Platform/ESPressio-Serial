@@ -8,6 +8,7 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Formats structured LogEntry values as human-readable lines on an ESPressio byte-output stream.</summary>
 class SerialLogSink final : public ILoggerSink {
     System::IO::IByteOutput* _output;
 
@@ -25,8 +26,10 @@ class SerialLogSink final : public ILoggerSink {
     }
 
 public:
+    /// <summary>Creates a log sink bound to a non-owning byte-output destination.</summary>
     explicit SerialLogSink(System::IO::IByteOutput& output) : _output(&output) {}
 
+    /// <inheritdoc/>
     void Write(const LogEntry& entry) override {
         if (!_output) return;
 
