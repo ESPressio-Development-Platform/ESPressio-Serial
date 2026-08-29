@@ -1,6 +1,5 @@
 #include <cassert>
 #include <string>
-#include <vector>
 #include <ESPressio_WiFiMonitor.hpp>
 
 using namespace ESPressio;
@@ -20,10 +19,10 @@ public:
     WiFi::WiFiStatus StartAccessPoint() override { return WiFi::WiFiStatus::Success; }
     WiFi::WiFiStatus StopAccessPoint() override { return WiFi::WiFiStatus::Success; }
     WiFi::WiFiStatus StartScan() override { return WiFi::WiFiStatus::Success; }
-    WiFi::WiFiStatus Poll(WiFi::WiFiRuntimeState& output,std::vector<WiFi::ScanResult>* scans,std::vector<WiFi::WiFiPlatformEvent>* events) override {
+    WiFi::WiFiStatus Poll(WiFi::WiFiRuntimeState& output,WiFi::WiFiVector<WiFi::ScanResult>* scans,WiFi::WiFiVector<WiFi::WiFiPlatformEvent>* events) override {
         output=state; if(scans && scanReady){WiFi::ScanResult r;r.SSID="VisibleNetwork";r.RSSI=-50;r.Channel=11;r.Security=WiFi::NetworkSecurity::WPA2;scans->push_back(r);scanReady=false;} if(events){*events=pending;pending.clear();} return WiFi::WiFiStatus::Success;
     }
-    WiFi::WiFiRuntimeState state{}; bool scanReady=false; std::vector<WiFi::WiFiPlatformEvent> pending;
+    WiFi::WiFiRuntimeState state{}; bool scanReady=false; WiFi::WiFiVector<WiFi::WiFiPlatformEvent> pending;
 };
 
 int main(){
