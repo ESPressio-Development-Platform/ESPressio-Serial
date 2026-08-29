@@ -17,7 +17,11 @@ private:
     Print* _output = nullptr;
     ESPressio::Observable::ObserverHandlePtr _handle;
 
-    void Line(const char* operation, const std::vector<std::string>& path) {
+    /// <summary>Writes one borrowed allocator-aware Command path without materializing a diagnostic copy.</summary>
+    void Line(
+        const char* operation,
+        const ESPressio::Command::CommandPath& path
+    ) {
         if (!_output) return;
         _output->print("[ESPressio Command] ");
         _output->print(operation);
@@ -25,7 +29,10 @@ private:
             _output->print(" ");
             for (std::size_t i = 0; i < path.size(); ++i) {
                 if (i) _output->print("/");
-                _output->print(path[i].c_str());
+                _output->write(
+                    reinterpret_cast<const uint8_t*>(path[i].data()),
+                    path[i].size()
+                );
             }
         }
         _output->println();
@@ -51,12 +58,16 @@ public:
     }
 
     /// <summary>Writes a diagnostic line when a Command path is registered.</summary>
-    void OnCommandRegistered(const std::vector<std::string>& path) override {
+    void OnCommandRegistered(
+        const ESPressio::Command::CommandPath& path
+    ) override {
         Line("Registered", path);
     }
 
     /// <summary>Writes a diagnostic line when a Command path is unregistered.</summary>
-    void OnCommandUnregistered(const std::vector<std::string>& path) override {
+    void OnCommandUnregistered(
+        const ESPressio::Command::CommandPath& path
+    ) override {
         Line("Unregistered", path);
     }
 };
