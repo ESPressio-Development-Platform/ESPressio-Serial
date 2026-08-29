@@ -12,19 +12,21 @@ jobs:
         with:
           path: project/ESPressio-Serial
       - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: feature/1-system-memory-policy, path: project/dependencies/ESPressio-System}
+      - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: feature/1-task-execution, path: project/dependencies/ESPressio-Task}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: 3.0.2, path: project/dependencies/ESPressio-Observable}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: feature/16-rtti-free-observer-registry, path: project/dependencies/ESPressio-Observable}
       - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: optimisation/25-psram-buffers, path: project/dependencies/ESPressio-Serializable}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: 0.2.7, path: project/dependencies/ESPressio-Units}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: main, path: project/dependencies/ESPressio-Units}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: 2.2.8, path: project/dependencies/ESPressio-Timing}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: feature/29-platform-clock-abstractions, path: project/dependencies/ESPressio-Timing}
       - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-Threads, ref: optimisation/69-resource-footprint, path: project/dependencies/ESPressio-Threads}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Event, ref: optimisation/55-event-registry-footprint, path: project/dependencies/ESPressio-Event}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Event, ref: feature/57-rtti-free-memory-efficiency, path: project/dependencies/ESPressio-Event}
       - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-WiFi, ref: feature/20-wifi-off-mode, path: project/dependencies/ESPressio-WiFi}
       - uses: actions/setup-python@v5
@@ -44,6 +46,7 @@ jobs:
           build_unflags = -std=gnu++11 -fno-rtti
           lib_ldf_mode = deep+
           lib_deps =
+              ../dependencies/ESPressio-System
               ../dependencies/ESPressio-Task
               ../dependencies/ESPressio-Observable
               ../dependencies/ESPressio-Serializable
