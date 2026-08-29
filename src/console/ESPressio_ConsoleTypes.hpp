@@ -3,8 +3,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <string>
 #include <string_view>
+
+#include <ESPressio_Memory.hpp>
 
 namespace ESPressio::Serial {
 
@@ -24,8 +25,8 @@ struct ConsoleConfig {
     bool EchoInput = false;
     /// <summary>Write the configured prompt after initialization and each completed line.</summary>
     bool ShowPrompt = true;
-    /// <summary>Prompt text written when ShowPrompt is enabled.</summary>
-    std::string Prompt = "> ";
+    /// <summary>Prompt text written when ShowPrompt is enabled; retained storage prefers external memory.</summary>
+    System::Memory::String<System::Memory::MemoryPolicy::ExternalPreferred> Prompt = "> ";
 };
 
 /// <summary>Non-owning command and argument views supplied to a registered console command handler.</summary>
