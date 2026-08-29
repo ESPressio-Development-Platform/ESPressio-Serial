@@ -6,24 +6,26 @@
 
 #include <atomic>
 #include <memory>
-#include <string>
 #include <string_view>
-#include <vector>
 
 #include <Arduino.h>
 #include <ESPressio_Command.hpp>
 #include <ESPressio_CommandEnvelope.hpp>
 #include <ESPressio_CommandEvents.hpp>
 #include <ESPressio_CommandResponseRoute.hpp>
+#include <ESPressio_Memory.hpp>
 
 #include "../console/ESPressio_Console.hpp"
 
 namespace ESPressio::Serial {
 
 /// <summary>Integrates ESPressio Command parsing/execution with the line-oriented Serial Console.</summary>
-/// <remarks>Recognized console lines enter Command through the asynchronous inbound Event/envelope path; explicit Execute calls remain synchronous local invocations.</remarks>
+/// <remarks>Recognized console lines enter Command through the asynchronous inbound Event/envelope path; explicit Execute calls remain synchronous local invocations. Borrowed command text is preserved across recognition and direct execution so console ingress does not materialize temporary standard strings.</remarks>
 class CommandConsole final {
 private:
+    static constexpr auto ExternalPreferred =
+        System::Memory::MemoryPolicy::ExternalPreferred;
+
     class ResponseRoute final : public Command::ICommandResponseRoute {
         CommandConsole* _owner = nullptr;
 
@@ -61,9 +63,9 @@ private:
             return false;
         }
 
-        std::string error;
+        Command::CommandString error;
         const auto tokens = Command::TextCommandParser::Tokenize(
-            std::string(line),
+            line,
             &error
         );
         if (!error.empty() || tokens.empty()) {
@@ -82,15 +84,23 @@ private:
         if (_output == nullptr || result.message.empty()) {
             return;
         }
-        _output->println(result.message.c_str());
+        _output->write(
+            reinterpret_cast<const uint8_t*>(result.message.data()),
+            result.message.size()
+        );
+        _output->println();
     }
 
     void PrintResponse(const Command::CommandResponseEnvelope& response) {
         if (_output == nullptr || response.MessageLength == 0) {
             return;
         }
-        const std::string message = response.MessageString();
-        _output->println(message.c_str());
+        const auto message = response.MessageView();
+        _output->write(
+            reinterpret_cast<const uint8_t*>(message.data()),
+            message.size()
+        );
+        _output->println();
     }
 
     bool HandleLine(std::string_view line) {
@@ -111,7 +121,7 @@ private:
         envelope.ResponseMode = Command::CommandResponseMode::Single;
         envelope.ResponseTimeoutMilliseconds = 100;
 
-        if (!envelope.SetRaw(line.data(), line.size())) {
+        if (!envelope.SetRaw(line)) {
             if (_output != nullptr) {
                 _output->println("Command input exceeds asynchronous envelope capacity");
             }
@@ -145,7 +155,15 @@ public:
         _registry = &registry;
         _output = console.GetOutput();
 
-        _responseRoute = std::make_shared<ResponseRoute>(*this);
+        try {
+            _responseRoute = System::Memory::MakeShared<
+                ResponseRoute,
+                ExternalPreferred
+            >(*this);
+        } catch (...) {
+            Shutdown();
+            return false;
+        }
         _responseRouteId =
             Command::CommandResponseRouteRegistry::GetInstance().Register(
                 _responseRoute
@@ -202,13 +220,13 @@ public:
     /// <summary>Returns the attached non-owning Console.</summary>
     Console* GetConsole() const noexcept { return _console; }
 
-    /// <summary>Executes a Command synchronously through the direct/local registry path and prints any result message.</summary>
+    /// <summary>Executes borrowed Command text synchronously through the direct/local registry path and prints any result message without materializing a standard string.</summary>
     /// <remarks>This method intentionally bypasses the asynchronous transport-style console ingress path.</remarks>
     Command::CommandResult Execute(std::string_view line) {
         if (_registry == nullptr) {
             return Command::CommandResult::Error("CommandConsole is not initialized");
         }
-        auto result = _registry->Invoke(std::string(line));
+        auto result = _registry->Invoke(line);
         PrintResult(result);
         return result;
     }
