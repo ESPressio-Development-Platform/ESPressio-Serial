@@ -8,9 +8,9 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include <ESPressio_ByteStream.hpp>
+#include <ESPressio_Memory.hpp>
 
 #include "ESPressio_ConsoleTypes.hpp"
 
@@ -87,6 +87,16 @@ public:
         if (_output != nullptr && text != nullptr) (void)_output->WriteText(text);
     }
     void print(const std::string& text) noexcept { print(text.c_str()); }
+    /// <summary>Writes borrowed text without requiring a null-terminated or owning copy.</summary>
+    void print(std::string_view text) noexcept {
+        if (_output == nullptr || text.empty()) return;
+        std::size_t written = 0;
+        (void)_output->Write(
+            reinterpret_cast<const uint8_t*>(text.data()),
+            text.size(),
+            written
+        );
+    }
     void print(char value) noexcept { if (_output != nullptr) (void)_output->WriteByte(static_cast<uint8_t>(value)); }
 
     template<typename TValue, std::enable_if_t<std::is_integral_v<TValue> && !std::is_same_v<std::remove_cv_t<TValue>, char>, int> = 0>
@@ -102,6 +112,8 @@ public:
     void println() noexcept { if (_output != nullptr) (void)_output->WriteLine(); }
     void println(const char* text) noexcept { if (_output != nullptr) (void)_output->WriteLine(text); }
     void println(const std::string& text) noexcept { println(text.c_str()); }
+    /// <summary>Writes borrowed text followed by a newline without creating an owning copy.</summary>
+    void println(std::string_view text) noexcept { print(text); println(); }
     void println(char value) noexcept { print(value); println(); }
 
     template<typename TValue, std::enable_if_t<std::is_integral_v<TValue> && !std::is_same_v<std::remove_cv_t<TValue>, char>, int> = 0>
@@ -118,30 +130,45 @@ public:
 using Print = ByteOutputTextWriter;
 
 /// <summary>Line-oriented command console operating on platform-neutral ESPressio byte streams.</summary>
-/// <remarks>Console performs no background I/O; callers invoke Poll to consume currently available bytes.</remarks>
+/// <remarks>Console performs no background I/O; callers invoke Poll to consume currently available bytes. Retained command metadata, interceptor records, and input-line capacity prefer external memory through ESPressio System.</remarks>
 class Console final {
 private:
+    static constexpr auto ExternalPreferred =
+        System::Memory::MemoryPolicy::ExternalPreferred;
+    using ConsoleString = System::Memory::String<ExternalPreferred>;
+
     struct CommandRegistration {
-        std::string Name;
-        std::string Help;
+        ConsoleString Name;
+        ConsoleString Help;
         ConsoleCommandHandler Handler;
     };
-
-    System::IO::IByteInput* _input = nullptr;
-    System::IO::IByteOutput* _output = nullptr;
-    mutable ByteOutputTextWriter _textOutput;
-    ConsoleConfig _config;
-    std::vector<CommandRegistration> _commands;
-    std::string _line;
-    bool _discardUntilNewline = false;
+    using CommandStorage = System::Memory::Vector<
+        CommandRegistration,
+        ExternalPreferred
+    >;
 
     struct InterceptorRegistration {
         uint32_t ID = 0;
         ConsoleLineInterceptor Handler;
     };
+    using InterceptorStorage = System::Memory::Vector<
+        InterceptorRegistration,
+        ExternalPreferred
+    >;
 
-    std::vector<InterceptorRegistration> _interceptors;
+    System::IO::IByteInput* _input = nullptr;
+    System::IO::IByteOutput* _output = nullptr;
+    mutable ByteOutputTextWriter _textOutput;
+    ConsoleConfig _config;
+    CommandStorage _commands;
+    ConsoleString _line;
+    bool _discardUntilNewline = false;
+    InterceptorStorage _interceptors;
     uint32_t _nextInterceptorID = 1;
+
+    static std::string_view View(const ConsoleString& value) noexcept {
+        return std::string_view(value.data(), value.size());
+    }
 
     static std::string_view Trim(std::string_view value) noexcept {
         while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front()))) value.remove_prefix(1);
@@ -158,7 +185,24 @@ private:
     }
 
     void WriteText(const char* text) { if (_output != nullptr && text != nullptr) (void)_output->WriteText(text); }
+
+    void WriteView(std::string_view text) {
+        if (_output == nullptr || text.empty()) return;
+        std::size_t written = 0;
+        (void)_output->Write(
+            reinterpret_cast<const uint8_t*>(text.data()),
+            text.size(),
+            written
+        );
+    }
+
     void WriteLine(const char* text = nullptr) { if (_output != nullptr) (void)_output->WriteLine(text); }
+
+    void WriteLine(std::string_view text) {
+        WriteView(text);
+        WriteLine();
+    }
+
     void PrintPrompt() { if (_output != nullptr && _config.ShowPrompt) WriteText(_config.Prompt.c_str()); }
 
     void PrintHelp(std::string_view command = {}) {
@@ -166,24 +210,30 @@ private:
         command = Trim(command);
         if (!command.empty()) {
             for (const auto& registration : _commands) {
-                if (EqualsIgnoreCase(registration.Name, command)) {
-                    WriteText(registration.Name.c_str());
-                    if (!registration.Help.empty()) { WriteText(" - "); WriteLine(registration.Help.c_str()); }
-                    else WriteLine();
+                if (EqualsIgnoreCase(View(registration.Name), command)) {
+                    WriteView(View(registration.Name));
+                    if (!registration.Help.empty()) {
+                        WriteText(" - ");
+                        WriteLine(View(registration.Help));
+                    } else {
+                        WriteLine();
+                    }
                     return;
                 }
             }
             WriteText("Unknown command: ");
-            const std::string value(command);
-            WriteLine(value.c_str());
+            WriteLine(command);
             return;
         }
         WriteLine("Available commands:");
         WriteLine("  help [command]");
         for (const auto& registration : _commands) {
             WriteText("  ");
-            WriteText(registration.Name.c_str());
-            if (!registration.Help.empty()) { WriteText(" - "); WriteText(registration.Help.c_str()); }
+            WriteView(View(registration.Name));
+            if (!registration.Help.empty()) {
+                WriteText(" - ");
+                WriteView(View(registration.Help));
+            }
             WriteLine();
         }
     }
@@ -195,7 +245,7 @@ public:
     /// <returns>False if input buffer preparation fails; otherwise true after the console is bound and prompt state initialized.</returns>
     bool Initialize(System::IO::IByteInput& input, System::IO::IByteOutput& output, const ConsoleConfig& config = {}) {
         ConsoleConfig preparedConfig;
-        std::string preparedLine;
+        ConsoleString preparedLine;
         try {
             preparedConfig = config;
             preparedLine.reserve(preparedConfig.MaximumLineLength);
@@ -256,15 +306,29 @@ public:
     /// <returns>False for an empty/duplicate name or empty handler.</returns>
     bool RegisterCommand(std::string name, std::string help, ConsoleCommandHandler handler) {
         if (name.empty() || !handler) return false;
-        for (const auto& registration : _commands) if (EqualsIgnoreCase(registration.Name, name)) return false;
-        _commands.push_back({std::move(name), std::move(help), std::move(handler)});
-        std::sort(_commands.begin(), _commands.end(), [](const auto& left, const auto& right) { return left.Name < right.Name; });
+        for (const auto& registration : _commands) {
+            if (EqualsIgnoreCase(View(registration.Name), name)) return false;
+        }
+        CommandRegistration registration;
+        try {
+            registration.Name.assign(name.data(), name.size());
+            registration.Help.assign(help.data(), help.size());
+            registration.Handler = std::move(handler);
+            _commands.push_back(std::move(registration));
+        } catch (...) {
+            return false;
+        }
+        std::sort(_commands.begin(), _commands.end(), [](const auto& left, const auto& right) {
+            return View(left.Name) < View(right.Name);
+        });
         return true;
     }
 
     /// <summary>Removes a named console command using case-insensitive matching.</summary>
     bool UnregisterCommand(std::string_view name) {
-        const auto found = std::remove_if(_commands.begin(), _commands.end(), [&](const auto& item) { return EqualsIgnoreCase(item.Name, name); });
+        const auto found = std::remove_if(_commands.begin(), _commands.end(), [&](const auto& item) {
+            return EqualsIgnoreCase(View(item.Name), name);
+        });
         if (found == _commands.end()) return false;
         _commands.erase(found, _commands.end());
         return true;
@@ -284,13 +348,12 @@ public:
         const auto arguments = separator == std::string_view::npos ? std::string_view{} : Trim(line.substr(separator + 1));
         if (EqualsIgnoreCase(command, "help")) { PrintHelp(arguments); return ConsoleExecutionResult::Executed; }
         for (const auto& registration : _commands) {
-            if (!EqualsIgnoreCase(registration.Name, command)) continue;
+            if (!EqualsIgnoreCase(View(registration.Name), command)) continue;
             registration.Handler({command, arguments});
             return ConsoleExecutionResult::Executed;
         }
         WriteText("Unknown command: ");
-        const std::string commandText(command);
-        WriteLine(commandText.c_str());
+        WriteLine(command);
         WriteLine("Type 'help' for available commands.");
         return ConsoleExecutionResult::UnknownCommand;
     }
@@ -312,7 +375,7 @@ public:
                     continue;
                 }
                 if (_config.EchoInput) WriteLine();
-                ExecuteLine(_line);
+                ExecuteLine(View(_line));
                 _line.clear();
                 PrintPrompt();
                 continue;
@@ -326,7 +389,12 @@ public:
             }
             if (_discardUntilNewline) continue;
             if (_line.size() >= _config.MaximumLineLength) { _discardUntilNewline = true; continue; }
-            _line.push_back(character);
+            try {
+                _line.push_back(character);
+            } catch (...) {
+                _discardUntilNewline = true;
+                continue;
+            }
             if (_config.EchoInput) (void)_output->WriteByte(static_cast<uint8_t>(character));
         }
     }
