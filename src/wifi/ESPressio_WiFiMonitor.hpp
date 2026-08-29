@@ -70,7 +70,7 @@ public:
         if(!_output)return;Prefix();_output->print("Scan ");_output->print(ScanStateName(before));_output->print(" -> ");_output->println(ScanStateName(after));
     }
     /// <inheritdoc/>
-    void OnScanCompleted(const std::vector<ESPressio::WiFi::ScanResult>& results) override {
+    void OnScanCompleted(const ESPressio::WiFi::WiFiVector<ESPressio::WiFi::ScanResult>& results) override {
         if(!_output)return;Prefix();_output->print("ScanComplete count=");_output->println(static_cast<unsigned int>(results.size()));
         for(const auto& r:results){_output->print("  ssid=");_output->print(r.SSID.c_str());_output->print(" rssi=");_output->print(r.RSSI);_output->print(" channel=");_output->print(static_cast<unsigned int>(r.Channel));_output->print(" security=");_output->println(SecurityName(r.Security));}
     }
