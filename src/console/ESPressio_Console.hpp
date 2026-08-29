@@ -130,7 +130,7 @@ public:
 using Print = ByteOutputTextWriter;
 
 /// <summary>Line-oriented command console operating on platform-neutral ESPressio byte streams.</summary>
-/// <remarks>Console performs no background I/O; callers invoke Poll to consume currently available bytes. Retained command metadata, interceptor records, and input-line capacity prefer external memory through ESPressio System.</remarks>
+/// <remarks>Console performs no background I/O; callers invoke Poll to consume currently available bytes. Retained command metadata, interceptor records, prompt text, and input-line capacity prefer external memory through ESPressio System.</remarks>
 class Console final {
 private:
     static constexpr auto ExternalPreferred =
@@ -302,9 +302,10 @@ public:
         return true;
     }
 
-    /// <summary>Registers a case-insensitive named command and optional help text.</summary>
+    /// <summary>Registers a case-insensitive named command and optional help text from borrowed views.</summary>
     /// <returns>False for an empty/duplicate name or empty handler.</returns>
-    bool RegisterCommand(std::string name, std::string help, ConsoleCommandHandler handler) {
+    /// <remarks>Name and help text are copied exactly once into externally preferred retained storage; callers do not need to create temporary owning strings.</remarks>
+    bool RegisterCommand(std::string_view name, std::string_view help, ConsoleCommandHandler handler) {
         if (name.empty() || !handler) return false;
         for (const auto& registration : _commands) {
             if (EqualsIgnoreCase(View(registration.Name), name)) return false;
