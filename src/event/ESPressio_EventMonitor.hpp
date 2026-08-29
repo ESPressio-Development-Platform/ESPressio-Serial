@@ -37,7 +37,8 @@ namespace ESPressio::Serial {
 /// Event transport callbacks only capture a bounded, owned transaction snapshot into System
 /// <c>ExternalPreferred</c> memory and submit a pointer to a dedicated bounded diagnostic worker.
 /// Formatting, BinaryArchive traversal, numeric conversion, and output therefore never execute on
-/// the observed Event transport worker's constrained stack.
+/// the observed Event transport worker's constrained stack. The diagnostic queue also prefers external
+/// storage while the worker task stack and synchronization path remain platform-safe/internal.
 /// </remarks>
 class EventMonitor final :
     public Event::IEventTransportManagerObserver {
@@ -227,7 +228,7 @@ private:
         configuration.OverflowPolicy =
             Task::TaskQueueOverflowPolicy::Reject;
         configuration.MemoryPolicy =
-            Task::TaskMemoryPolicy::Internal;
+            Task::TaskMemoryPolicy::PreferExternal;
         return configuration;
     }
 
