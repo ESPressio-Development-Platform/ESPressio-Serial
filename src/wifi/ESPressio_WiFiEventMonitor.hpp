@@ -66,6 +66,7 @@ private:
             case WiFi::WiFiMode::AccessPoint: return "ap";
             case WiFi::WiFiMode::AccessPointClient: return "ap-client";
             case WiFi::WiFiMode::APUntilClient: return "ap-until-client";
+            case WiFi::WiFiMode::Off: return "off";
         }
         return "unknown";
     }
