@@ -1,7 +1,7 @@
 #include <cassert>
 #include <string>
 
-#include <ESPressio_Logging.hpp>
+#include <ESPressio_SerialLogging.hpp>
 
 namespace {
 
