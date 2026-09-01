@@ -16,6 +16,24 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-System
           ref: feature/1-system-memory-policy
           path: deps/ESPressio-System
+      - name: Checkout ESPressio Logging working branch
+        uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Logging
+          ref: main
+          path: deps/ESPressio-Logging
+      - name: Checkout ESPressio Timing working branch
+        uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Timing
+          ref: feature/29-platform-clock-abstractions
+          path: deps/ESPressio-Timing
+      - name: Checkout ESPressio Units working branch
+        uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Units
+          ref: main
+          path: deps/ESPressio-Units
       - name: Checkout asynchronous ESPressio Command branch
         uses: actions/checkout@v4
         with:
@@ -44,6 +62,9 @@ jobs:
         run: >-
           cmake -S tests -B build
           -DESPRESSIO_SYSTEM_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-System/src"
+          -DESPRESSIO_LOGGING_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Logging/src"
+          -DESPRESSIO_TIMING_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Timing/src"
+          -DESPRESSIO_UNITS_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Units/src"
           -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
           -DESPRESSIO_OBSERVABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Observable/src"
           -DESPRESSIO_SERIALIZABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Serializable/src"
@@ -62,6 +83,8 @@ jobs:
           path: project/ESPressio-Serial
       - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: feature/1-system-memory-policy, path: project/dependencies/ESPressio-System}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Logging, ref: main, path: project/dependencies/ESPressio-Logging}
       - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: feature/1-task-execution, path: project/dependencies/ESPressio-Task}
       - uses: actions/checkout@v4
@@ -127,6 +150,7 @@ jobs:
           lib_ldf_mode = deep+
           lib_deps =
               ../dependencies/ESPressio-System
+              ../dependencies/ESPressio-Logging
               ../dependencies/ESPressio-Task
               ../dependencies/ESPressio-Observable
               ../dependencies/ESPressio-Serializable
@@ -146,6 +170,7 @@ jobs:
           #include <Arduino.h>
           #include <Network.h>
           #include <WiFi.h>
+          #include <ESPressio_Logging.hpp>
           #include <ESPressio_CommandMonitor.hpp>
           #include <ESPressio_SecurityMonitor.hpp>
           #include <ESPressio_SocketWorkerMonitor.hpp>
