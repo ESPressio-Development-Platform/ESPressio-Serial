@@ -76,16 +76,18 @@ The console remains independent of the mechanism carrying those bytes. Arduino U
 operator -> byte stream -> Serial Console -> CommandRegistry -> domain Command handler
 ```
 
-`EventConsole` provides runtime discovery and composition/dispatch of registered Serializable Events while reusing Event's normal registry, authorization and validation mechanisms.
+`EventConsole` provides runtime discovery and composition/dispatch of registered Serializable Events while reusing Event's normal registry, authorization and validation mechanisms. Its audit messages now route through the central ESPressio Logger rather than through a Serial-owned logging abstraction.
 
 # Logging Sink
 
 `ESPressio-Logging` owns `Logger`, `LogRouter`, `LogRecordView`, `LogRecordLease`, levels, categories, metadata and `ILogSink`. ESPressio Serial no longer duplicates any of those concepts.
 
+Include `ESPressio_SerialLogging.hpp` when consuming the Serial Sink. This deliberately has a distinct name from the generic `ESPressio_Logging.hpp` umbrella owned by ESPressio-Logging, avoiding ambiguous/self-shadowing headers.
+
 `SerialLogSink` is the concrete adapter from an ESPressio Logging record to a portable `IByteOutput`:
 
 ```cpp
-#include <ESPressio_Logging.hpp>
+#include <ESPressio_SerialLogging.hpp>
 #include <ESPressio_ArduinoByteStream.hpp>
 
 inline constexpr auto ApplicationCategory =
@@ -96,14 +98,14 @@ ESPressio::Serial::SerialLogSink serialSink(serialOutput);
 
 void setup() {
     ESPressio::Logging::Logger::GetInstance()
-        .GetRouter()
+        .Router()
         .RegisterSink(&serialSink);
 
     ESPRESSIO_LOG_INFO(ApplicationCategory, "Boot complete");
 }
 ```
 
-The Sink executes synchronously on the informing thread, retains no `LogRecordLease`, and writes the supplied message/category/metadata views directly to the byte-output abstraction. Numeric formatting uses only bounded stack-local buffers. No owning log string or serialized intermediate representation is constructed.
+The Sink executes synchronously on the informing thread, retains no `LogRecordLease`, and writes the supplied message/category/metadata views directly to the byte-output abstraction. Numeric formatting uses only bounded stack-local buffers. No owning log string or serialized intermediate representation is constructed. A Sink-local mutex serializes complete records so concurrent callers cannot interleave output fragments, while its level mask is atomically readable/writable without taking that output lock.
 
 Default output is compact but preserves both Logging timestamps where available:
 
@@ -190,6 +192,7 @@ Raw byte transport is generic hardware/runtime I/O and belongs in System. Loggin
 - Core Serial remains framework- and platform-neutral.
 - Generic Logging contracts belong to `ESPressio-Logging`, not Serial.
 - `SerialLogSink` is synchronous, non-owning and does not retain borrowed Logging records.
+- Complete Serial log records are serialized against concurrent callers; the Router itself still owns no execution thread.
 - Framework byte-stream types are adapted at the platform/application boundary.
 - Optional integrations remain opt-in and downstream.
 - Monitors consume ESPressio public types rather than lower-framework implementation types.
