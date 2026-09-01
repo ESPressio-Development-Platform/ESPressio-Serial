@@ -1,6 +1,8 @@
 #pragma once
 
+#include <atomic>
 #include <cstdio>
+#include <mutex>
 #include <string_view>
 #include <type_traits>
 #include <variant>
@@ -13,10 +15,11 @@
 namespace ESPressio::Serial {
 
 /// <summary>Synchronously renders ESPressio structured log records to a byte-output destination.</summary>
-/// <remarks>The Sink owns no output buffer and never retains the supplied LogRecordLease.</remarks>
+/// <remarks>The Sink owns no output buffer, never retains the supplied LogRecordLease, and serializes complete records so concurrent callers cannot interleave one another's output fragments.</remarks>
 class SerialLogSink final : public Logging::ILogSink {
     System::IO::IByteOutput* _output = nullptr;
-    Logging::LogLevelMask _levelMask = Logging::AllLogLevels;
+    std::atomic<Logging::LogLevelMask> _levelMask{Logging::AllLogLevels};
+    mutable std::mutex _writeMutex;
 
     static void WriteView(System::IO::IByteOutput& output, std::string_view value) noexcept {
         if (value.empty()) return;
@@ -95,20 +98,25 @@ public:
         Logging::LogLevelMask levelMask = Logging::AllLogLevels
     ) noexcept : _output(&output), _levelMask(levelMask) {}
 
-    /// <summary>Changes the levels accepted by this Sink.</summary>
-    void SetLevelMask(Logging::LogLevelMask levelMask) noexcept { _levelMask = levelMask; }
+    /// <summary>Changes the levels accepted by this Sink without blocking an in-progress record write.</summary>
+    void SetLevelMask(Logging::LogLevelMask levelMask) noexcept {
+        _levelMask.store(levelMask, std::memory_order_relaxed);
+    }
 
     /// <summary>Returns the levels currently accepted by this Sink.</summary>
-    Logging::LogLevelMask GetLevelMask() const noexcept { return _levelMask; }
+    Logging::LogLevelMask GetLevelMask() const noexcept {
+        return _levelMask.load(std::memory_order_relaxed);
+    }
 
     /// <inheritdoc/>
     bool IsEnabled(Logging::LogLevel level, const Logging::LogCategory&) const noexcept override {
-        return _output != nullptr && Logging::ContainsLevel(_levelMask, level);
+        return _output != nullptr && Logging::ContainsLevel(GetLevelMask(), level);
     }
 
     /// <inheritdoc/>
     void Accept(const Logging::LogRecordLease& record) noexcept override {
         if (_output == nullptr) return;
+        std::lock_guard<std::mutex> writeLock(_writeMutex);
 
         const auto& view = record.View();
 
