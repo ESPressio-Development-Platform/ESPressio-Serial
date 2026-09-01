@@ -1,21 +1,25 @@
 #include <Arduino.h>
-#include <ESPressio_Logging.hpp>
 
-ESPressio::Serial::Logger<> logger;
-ESPressio::Serial::SerialLogSink serialSink(::Serial);
-ESPressio::Serial::DiagnosticRingBuffer<32> history;
+#include <ESPressio_ArduinoByteStream.hpp>
+#include <ESPressio_SerialLogging.hpp>
+
+inline constexpr auto ApplicationCategory =
+    ESPressio::Logging::LogCategory::Named("Application");
+inline constexpr auto CameraCategory =
+    ESPressio::Logging::LogCategory::Named("Camera");
+
+ESPressio::ESP32Platform::ArduinoByteOutput serialOutput(::Serial);
+ESPressio::Serial::SerialLogSink serialSink(serialOutput);
 
 void setup() {
     ::Serial.begin(115200);
-    logger.AddSink(serialSink);
-    logger.AddSink(history);
-    logger.SetMinimumLevel(ESPressio::Serial::LogLevel::Debug);
 
-    logger.Info("Application", "Boot complete");
-    logger.Debug("Camera", "Waiting for connection");
-    logger.Warning("Example", "This warning is retained in the flight recorder");
+    auto& logger = ESPressio::Logging::Logger::GetInstance();
+    logger.Router().RegisterSink(&serialSink);
 
-    ::Serial.println("--- retained history ---");
-    history.Dump(::Serial);
+    ESPRESSIO_LOG_INFO(ApplicationCategory, "Boot complete");
+    ESPRESSIO_LOG_DEBUG(CameraCategory, "Waiting for connection");
+    ESPRESSIO_LOG_WARN(ApplicationCategory, "Example warning");
 }
+
 void loop() {}
