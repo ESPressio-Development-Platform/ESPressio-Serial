@@ -36,7 +36,16 @@ add_test(NAME SerialLogSink COMMAND test_serial_log_sink)
 add_executable(test_event_console test_event_console.cpp)
 target_compile_features(test_event_console PRIVATE cxx_std_17)
 target_compile_options(test_event_console PRIVATE -Wall -Wextra -Wpedantic -Werror)
-target_include_directories(test_event_console PRIVATE stubs ../src ${ESPRESSIO_SYSTEM_INCLUDE_DIR} ${ESPRESSIO_COMMAND_INCLUDE_DIR} ${ESPRESSIO_OBSERVABLE_INCLUDE_DIR})
+target_include_directories(test_event_console PRIVATE
+    stubs
+    ../src
+    ${ESPRESSIO_SYSTEM_INCLUDE_DIR}
+    ${ESPRESSIO_COMMAND_INCLUDE_DIR}
+    ${ESPRESSIO_OBSERVABLE_INCLUDE_DIR}
+    ${ESPRESSIO_LOGGING_INCLUDE_DIR}
+    ${ESPRESSIO_TIMING_INCLUDE_DIR}
+    ${ESPRESSIO_UNITS_INCLUDE_DIR}
+)
 add_test(NAME EventConsoleContract COMMAND test_event_console)
 
 add_executable(test_command_console test_command_console.cpp)
