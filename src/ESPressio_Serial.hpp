@@ -6,7 +6,7 @@
  * Optional facilities are selected explicitly.
  *
  * Logging Sink:
- *   ESPressio_Logging.hpp                  -> ESPressio-Logging
+ *   ESPressio_SerialLogging.hpp            -> ESPressio-Logging + SerialLogSink
  *
  * Logging / diagnostic monitors:
  *   ESPressio_SystemClockMonitor.hpp
