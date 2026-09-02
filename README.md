@@ -34,7 +34,7 @@ During coordinated development:
 lib_deps =
     https://github.com/ESPressio-Development-Platform/ESPressio-System.git#main
     https://github.com/ESPressio-Development-Platform/ESPressio-Logging.git#main
-    https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git#feature/40-logging-sink
+    https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git#main
 ```
 
 On Arduino-ESP32, add ESPressio-ESP32 and create the adapter at the application boundary:
