@@ -1,7 +1,7 @@
 {
     "name": "ESPressio-Serial",
-    "description": "Platform-neutral serial, console and logging components for ESPressio, with opt-in higher-level integrations.",
-    "keywords": "serial,console,monitor,event,transport,diagnostics,observable,wifi,espressio",
+    "description": "Platform-neutral serial and console components for ESPressio, including the concrete serial Logging Sink and opt-in higher-level integrations.",
+    "keywords": "serial,console,logging,sink,monitor,event,transport,diagnostics,observable,wifi,espressio",
     "authors": {"name":"Simon J. Stuart","maintainer":true,"url":"https://espressio.org"},
     "homepage": "https://espressio.org",
     "build": {"flags":["-DESPRESSIO_SERIAL"]},
@@ -14,6 +14,11 @@
         {
             "name": "ESPressio-System",
             "version": "https://github.com/ESPressio-Development-Platform/ESPressio-System.git#main",
+            "platforms": "*"
+        },
+        {
+            "name": "ESPressio-Logging",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Logging.git#main",
             "platforms": "*"
         }
     ]

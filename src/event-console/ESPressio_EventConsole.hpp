@@ -23,11 +23,11 @@
 #include <ESPressio_EventTransport.hpp>
 #include <ESPressio_JsonArchive.hpp>
 #include <ESPressio_Command.hpp>
+#include <ESPressio_Logging.hpp>
 
 #include "../command-console/ESPressio_CommandConsole.hpp"
 
 #include "../console/ESPressio_Console.hpp"
-#include "../logging/ESPressio_ILoggerSink.hpp"
 #include "ESPressio_EventConsoleTypes.hpp"
 
 namespace ESPressio::Serial {
@@ -53,8 +53,6 @@ private:
 
     std::unordered_set<std::string>
         _denyList;
-
-    ILoggerSink* _auditSink = nullptr;
 
     uint32_t _interceptorID = 0;
 
@@ -83,6 +81,11 @@ private:
         _pendingEvent;
 
     mutable std::mutex _mutex;
+
+    static constexpr auto AuditCategory =
+        Logging::LogCategory::Named(
+            "EventConsole"
+        );
 
 
     static std::string_view Trim(
@@ -330,25 +333,15 @@ private:
 
 
     void Audit(
-        LogLevel level,
+        Logging::LogLevel level,
         const char* message
-    ) {
-        if (
-            _auditSink == nullptr
-        ) {
-            return;
-        }
-
-        const LogEntry entry{
-            static_cast<uint64_t>(
-                millis()
-            ),
-            level,
-            "EventConsole",
-            message
-        };
-
-        _auditSink->Write(entry);
+    ) noexcept {
+        Logging::Logger::
+            GetInstance().Log(
+                level,
+                AuditCategory,
+                message
+            );
     }
 
 
@@ -790,7 +783,7 @@ private:
             );
 
             Audit(
-                LogLevel::Info,
+                Logging::LogLevel::Info,
                 "Operator-dispatched Serializable Event."
             );
         } else {
@@ -799,7 +792,7 @@ private:
             );
 
             Audit(
-                LogLevel::Error,
+                Logging::LogLevel::Error,
                 "Serializable Event dispatch failed."
             );
         }
@@ -881,7 +874,7 @@ private:
             );
 
             Audit(
-                LogLevel::Warning,
+                Logging::LogLevel::Warn,
                 "Rejected oversized Event JSON payload."
             );
 
@@ -903,7 +896,7 @@ private:
             );
 
             Audit(
-                LogLevel::Warning,
+                Logging::LogLevel::Warn,
                 "Attempted dispatch of unregistered Event type."
             );
 
@@ -920,7 +913,7 @@ private:
             );
 
             Audit(
-                LogLevel::Warning,
+                Logging::LogLevel::Warn,
                 "Denied operator Event dispatch."
             );
 
@@ -948,7 +941,7 @@ private:
             );
 
             Audit(
-                LogLevel::Warning,
+                Logging::LogLevel::Warn,
                 "Rejected malformed Event JSON."
             );
 
@@ -987,7 +980,7 @@ private:
             );
 
             Audit(
-                LogLevel::Warning,
+                Logging::LogLevel::Warn,
                 "Serializable Event construction failed."
             );
 
@@ -1580,14 +1573,6 @@ public:
         _console = nullptr;
         _output = nullptr;
         _manager = nullptr;
-        _auditSink = nullptr;
-    }
-
-
-    void SetAuditSink(
-        ILoggerSink* sink
-    ) noexcept {
-        _auditSink = sink;
     }
 
 

@@ -1,12 +1,12 @@
 # ESPressio Serial
 
-Serial, console, logging and diagnostics components for the ESPressio Development Platform.
+Serial, console and operator-diagnostics components for the ESPressio Development Platform.
 
-ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It observes and controls other ESPressio subsystems without forcing Serial concerns back into those libraries.
+ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It observes and controls other ESPressio subsystems without forcing Serial concerns back into those libraries. Generic logging concepts are owned by `ESPressio-Logging`; this library owns only the concrete Serial Logging Sink.
 
 ## Current Version — 0.8.1
 
-0.8.1 is the current released baseline. The active platform-abstraction working branch additionally removes Arduino `Stream`/`Print` from the Serial core and consumes the byte-oriented contracts defined by ESPressio-System.
+0.8.1 is the current released baseline. This feature branch does not change version numbering. It removes the former Serial-owned Logger, logging record types, Sink abstraction and diagnostic ring buffer, and consumes the new `ESPressio-Logging` abstraction instead.
 
 ## Namespace
 
@@ -18,7 +18,7 @@ Because Arduino exposes a global object named `Serial`, fully qualified ESPressi
 
 # Platform-neutral byte I/O
 
-Core Serial no longer stores Arduino `Stream` or `Print` objects. Console input/output and log sinks consume:
+Core Serial does not store Arduino `Stream` or `Print` objects. Console input/output and the Serial Logging Sink consume:
 
 ```cpp
 ESPressio::System::IO::IByteInput
@@ -26,14 +26,15 @@ ESPressio::System::IO::IByteOutput
 ESPressio::System::IO::IByteStream
 ```
 
-This keeps console parsing, logging, monitoring and formatting in ESPressio-Serial while moving framework-specific byte transport to the platform layer.
+Framework-specific byte transport remains in the platform layer.
 
 During coordinated development:
 
 ```ini
 lib_deps =
-    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#feature/1-system-memory-policy
-    https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git#optimisation/39-explicit-thread-lifecycle
+    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#main
+    https://github.com/ESPressio-Development-Platform/ESPressio-Logging.git#main
+    https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git#feature/40-logging-sink
 ```
 
 On Arduino-ESP32, add ESPressio-ESP32 and create the adapter at the application boundary:
@@ -75,27 +76,44 @@ The console remains independent of the mechanism carrying those bytes. Arduino U
 operator -> byte stream -> Serial Console -> CommandRegistry -> domain Command handler
 ```
 
-`EventConsole` provides runtime discovery and composition/dispatch of registered Serializable Events while reusing Event's normal registry, authorization and validation mechanisms.
+`EventConsole` provides runtime discovery and composition/dispatch of registered Serializable Events while reusing Event's normal registry, authorization and validation mechanisms. Its audit messages now route through the central ESPressio Logger rather than through a Serial-owned logging abstraction.
 
-# Logging and diagnostic history
+# Logging Sink
 
-The logging layer separates records from sinks. `SerialLogSink` now consumes a portable `IByteOutput`:
+`ESPressio-Logging` owns `Logger`, `LogRouter`, `LogRecordView`, `LogRecordLease`, levels, categories, metadata and `ILogSink`. ESPressio Serial no longer duplicates any of those concepts.
+
+Include `ESPressio_SerialLogging.hpp` when consuming the Serial Sink. This deliberately has a distinct name from the generic `ESPressio_Logging.hpp` umbrella owned by ESPressio-Logging, avoiding ambiguous/self-shadowing headers.
+
+`SerialLogSink` is the concrete adapter from an ESPressio Logging record to a portable `IByteOutput`:
 
 ```cpp
-#include <ESPressio_Logging.hpp>
+#include <ESPressio_SerialLogging.hpp>
 #include <ESPressio_ArduinoByteStream.hpp>
 
-ESPressio::ESP32Platform::ArduinoByteOutput serialOutput(::Serial);
-ESPressio::Serial::Logger<> logger;
-ESPressio::Serial::SerialLogSink serialSink(serialOutput);
-ESPressio::Serial::DiagnosticRingBuffer<64> history;
+inline constexpr auto ApplicationCategory =
+    ESPressio::Logging::LogCategory::Named("Application");
 
-logger.AddSink(serialSink);
-logger.AddSink(history);
-logger.Info("Application", "Boot complete");
+ESPressio::ESP32Platform::ArduinoByteOutput serialOutput(::Serial);
+ESPressio::Serial::SerialLogSink serialSink(serialOutput);
+
+void setup() {
+    ESPressio::Logging::Logger::GetInstance()
+        .Router()
+        .RegisterSink(&serialSink);
+
+    ESPRESSIO_LOG_INFO(ApplicationCategory, "Boot complete");
+}
 ```
 
-`SerialLogSink` preserves compact timestamp/level/category formatting and CRLF line output without requiring Arduino `Print` in the logging implementation.
+The Sink executes synchronously on the informing thread, retains no `LogRecordLease`, and writes the supplied message/category/metadata views directly to the byte-output abstraction. Numeric formatting uses only bounded stack-local buffers. No owning log string or serialized intermediate representation is constructed. A Sink-local mutex serializes complete records so concurrent callers cannot interleave output fragments, while its level mask is atomically readable/writable without taking that output lock.
+
+Default output is compact but preserves both Logging timestamps where available:
+
+```text
+[mono=123456789ns system=1700000000000000000ns] [ERROR] [Laser-Trigger] triggered channel=6 armed=true
+```
+
+The Sink has its own independent `LogLevelMask`, allowing it to participate in Logging's per-Sink filtering without reintroducing Serial-specific severity types.
 
 # WiFi diagnostics
 
@@ -124,12 +142,15 @@ Serial provides opt-in monitors for Timing/System Clock, Threads, Event Transpor
 
 # Dependency model
 
-The Serial core now has one required ESPressio dependency:
+The Serial library now has two required ESPressio dependencies:
 
 ```text
-Serial core
-    -> System   (portable byte I/O)
+Serial
+    -> System    (portable byte I/O)
+    -> Logging   (log record / router / Sink contract)
 ```
+
+`Logging` in turn owns its own System/Observable/Timing dependencies. Serial does not duplicate those abstractions.
 
 Optional integrations remain downstream and selected only when their corresponding headers/features are used:
 
@@ -144,7 +165,7 @@ EventMonitor / EventConsole      - - -> Event / Serializable
 WiFiMonitor                      - - -> WiFi
 ```
 
-Serial remains terminal/downstream. No upstream domain library should depend on Serial.
+Serial remains terminal/downstream. No upstream domain library should depend on Serial merely to obtain Logging; upstream libraries consume `ESPressio-Logging` directly.
 
 # Platform boundary
 
@@ -160,20 +181,23 @@ ESPressio-ESP32 byte adapter
 System::IO byte contract
              |
              v
-ESPressio-Serial Console / logging / diagnostics
+ESPressio-Serial Console / SerialLogSink / diagnostics
 ```
 
-This is deliberately different from wrapping Arduino types inside new Serial-domain interfaces: raw byte transport is generic hardware/runtime I/O and therefore belongs in System, while Serial owns what those bytes mean to operators and diagnostics.
+Raw byte transport is generic hardware/runtime I/O and belongs in System. Logging semantics belong in ESPressio-Logging. Serial owns the operator-facing concrete representation of a log record on a Serial byte stream.
 
 # Design principles
 
 - Serial is an operator/diagnostics layer, not a replacement for source-library APIs.
-- Core Serial is framework- and platform-neutral.
+- Core Serial remains framework- and platform-neutral.
+- Generic Logging contracts belong to `ESPressio-Logging`, not Serial.
+- `SerialLogSink` is synchronous, non-owning and does not retain borrowed Logging records.
+- Complete Serial log records are serialized against concurrent callers; the Router itself still owns no execution thread.
 - Framework byte-stream types are adapted at the platform/application boundary.
 - Optional integrations remain opt-in and downstream.
 - Monitors consume ESPressio public types rather than lower-framework implementation types.
 - Sensitive configuration values are not emitted merely because diagnostics are enabled.
-- Diagnostic buffers and parsing limits are bounded for embedded reliability.
+- Diagnostic parsing limits are bounded for embedded reliability.
 - Command/Event operator surfaces reuse their authoritative registries and validation paths.
 
 # Platform abstraction audit

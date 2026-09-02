@@ -1,14 +1,14 @@
 #pragma once
 
 #include "ESPressio_SerialTypes.hpp"
-#include "ESPressio_DiagnosticTypes.hpp"
 
 /*
- * Optional facilities are selected explicitly. Core Serial remains free of
- * mandatory ESPressio-library dependencies.
+ * Optional facilities are selected explicitly.
  *
- * Logging / diagnostics:
- *   ESPressio_Logging.hpp
+ * Logging Sink:
+ *   ESPressio_SerialLogging.hpp            -> ESPressio-Logging + SerialLogSink
+ *
+ * Logging / diagnostic monitors:
  *   ESPressio_SystemClockMonitor.hpp
  *   ESPressio_ThreadMonitor.hpp
  *   ESPressio_EventMonitor.hpp
