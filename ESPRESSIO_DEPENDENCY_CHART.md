@@ -10,13 +10,13 @@ Arrows point from the consuming library to the library it consumes. Serial remai
 
 ```text
 Serial feature/40-logging-sink
-    -> System  feature/1-system-memory-policy
+    -> System  main
     -> Logging main
 
 Logging main
-    -> System      feature/1-system-memory-policy
-    -> Observable  feature/16-rtti-free-observer-registry
-    -> Timing      feature/29-platform-clock-abstractions
+    -> System      main
+    -> Observable  main
+    -> Timing      main
 ```
 
 The new `Logging` edge is required because Serial now provides only the concrete `SerialLogSink`; `Logger`, `LogRouter`, log records, levels, categories and the `ILogSink` abstraction are owned by ESPressio-Logging.
