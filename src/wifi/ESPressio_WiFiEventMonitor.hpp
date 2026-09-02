@@ -5,22 +5,44 @@
 #endif
 
 #include <Arduino.h>
-#include <vector>
 #include <ESPressio_EventThread.hpp>
+#include <ESPressio_Memory.hpp>
 #include <ESPressio_WiFiEvents.hpp>
 
 namespace ESPressio::Serial {
 
+/// <summary>Observes Wi-Fi Events and writes concise diagnostics to an Arduino Print sink.</summary>
+/// <remarks>The retained listener-handle table uses ESPressio System ExternalPreferred storage so optional diagnostics do not consume scarce internal DRAM for long-lived registry capacity.</remarks>
 class WiFiEventMonitor final : public Event::EventThread {
 public:
     explicit WiFiEventMonitor(Print& output)
-        : Event::EventThread(false), _output(output) {
-        RegisterAll();
+        : Event::EventThread(
+              Threads::ThreadReleasePolicy::ExplicitRelease
+          ),
+          _output(output) {
+        SetStartOnInitialize(false);
+    }
+
+    Threads::ThreadInitializationStatus Initialize() {
+        if (!_listenersRegistered) {
+            RegisterAll();
+            _listenersRegistered = true;
+        }
+
+        return Event::EventThread::Initialize();
     }
 
 private:
+    static constexpr auto ExternalPreferred =
+        System::Memory::MemoryPolicy::ExternalPreferred;
+    using ListenerHandleStorage = System::Memory::Vector<
+        Event::EventListenerHandlePtr,
+        ExternalPreferred
+    >;
+
     Print& _output;
-    std::vector<Event::EventListenerHandlePtr> _handles;
+    ListenerHandleStorage _handles;
+    bool _listenersRegistered = false;
 
     void Prefix() { _output.print("[ESPressio WiFi Event] "); }
 
@@ -44,6 +66,7 @@ private:
             case WiFi::WiFiMode::AccessPoint: return "ap";
             case WiFi::WiFiMode::AccessPointClient: return "ap-client";
             case WiFi::WiFiMode::APUntilClient: return "ap-until-client";
+            case WiFi::WiFiMode::Off: return "off";
         }
         return "unknown";
     }

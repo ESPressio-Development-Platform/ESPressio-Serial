@@ -1,15 +1,25 @@
 #pragma once
-#include <array>
 #include <cstddef>
 #include <cstring>
 #include <mutex>
+#include <ESPressio_Memory.hpp>
 #include "ESPressio_ILoggerSink.hpp"
 
 namespace ESPressio::Serial {
 
+/// <summary>Fixed-capacity, thread-safe in-memory logger sink retaining the most recent diagnostic entries.</summary>
+/// <typeparam name="Capacity">Maximum number of retained entries.</typeparam>
+/// <typeparam name="MessageBytes">Fixed storage reserved for each message including its terminator.</typeparam>
+/// <typeparam name="CategoryBytes">Fixed storage reserved for each category including its terminator.</typeparam>
+/// <remarks>The ring contents are materialized lazily in ESPressio System <c>ExternalPreferred</c> storage on first use, so merely constructing a diagnostic sink does not permanently reserve internal DRAM.</remarks>
 template<std::size_t Capacity, std::size_t MessageBytes = 160, std::size_t CategoryBytes = 32>
 class DiagnosticRingBuffer final : public ILoggerSink {
+    static_assert(Capacity > 0, "DiagnosticRingBuffer Capacity must be greater than zero");
+    static_assert(MessageBytes > 0, "DiagnosticRingBuffer MessageBytes must be greater than zero");
+    static_assert(CategoryBytes > 0, "DiagnosticRingBuffer CategoryBytes must be greater than zero");
+
 public:
+    /// <summary>Self-contained copy of a retained diagnostic entry.</summary>
     struct StoredEntry {
         uint64_t TimestampMilliseconds = 0;
         LogLevel Level = LogLevel::Info;
@@ -18,10 +28,27 @@ public:
     };
 
 private:
-    std::array<StoredEntry, Capacity> _entries{};
+    static constexpr auto ExternalPreferred =
+        System::Memory::MemoryPolicy::ExternalPreferred;
+    using EntryStorage =
+        System::Memory::Vector<StoredEntry, ExternalPreferred>;
+
+    EntryStorage _entries;
     std::size_t _next = 0;
     std::size_t _count = 0;
     mutable std::mutex _mutex;
+
+    bool EnsureStorageLocked() {
+        if (_entries.size() == Capacity) return true;
+        try {
+            _entries.resize(Capacity);
+            return true;
+        } catch (...) {
+            _entries.clear();
+            _next = _count = 0;
+            return false;
+        }
+    }
 
     static void Copy(char* destination, std::size_t size, const char* source) {
         if (!destination || size == 0) return;
@@ -31,8 +58,10 @@ private:
     }
 
 public:
+    /// <inheritdoc/>
     void Write(const LogEntry& entry) override {
         std::lock_guard<std::mutex> lock(_mutex);
+        if (!EnsureStorageLocked()) return;
         auto& stored = _entries[_next];
         stored.TimestampMilliseconds = entry.TimestampMilliseconds;
         stored.Level = entry.Level;
@@ -42,18 +71,22 @@ public:
         if (_count < Capacity) ++_count;
     }
 
+    /// <summary>Returns the number of entries currently retained.</summary>
     std::size_t Size() const {
         std::lock_guard<std::mutex> lock(_mutex);
         return _count;
     }
 
+    /// <summary>Discards all retained entries without releasing externally preferred backing capacity.</summary>
     void Clear() {
         std::lock_guard<std::mutex> lock(_mutex);
         _next = _count = 0;
     }
 
+    /// <summary>Writes retained entries to a Print sink from oldest to newest.</summary>
     void Dump(Print& output) const {
         std::lock_guard<std::mutex> lock(_mutex);
+        if (_entries.size() != Capacity || _count == 0) return;
         const std::size_t start = (_next + Capacity - _count) % Capacity;
         for (std::size_t i = 0; i < _count; ++i) {
             const auto& e = _entries[(start + i) % Capacity];

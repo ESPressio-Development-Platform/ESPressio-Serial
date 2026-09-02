@@ -21,6 +21,7 @@
  *   ESPressio_SocketSecuritySessionMonitor.hpp
  *   ESPressio_ESPNowTransportMonitor.hpp  -> ESP-Now >= 0.8.1 < 1.0.0
  *   ESPressio_WiFiMonitor.hpp             -> WiFi >= 0.1.0 < 1.0.0
+ *   ESPressio_StateMonitor.hpp            -> State, optional and header-selected
  *
  * Interactive integrations:
  *   ESPressio_CommandConsole.hpp

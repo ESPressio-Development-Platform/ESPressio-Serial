@@ -28,14 +28,22 @@
 
 namespace ESPressio::Serial {
 
+/// <summary>Selects which available subsystem monitors are aggregated by DiagnosticMonitor.</summary>
 struct DiagnosticMonitorConfig {
+    /// <summary>Enable System Clock diagnostics when Timing support is available.</summary>
     bool SystemClock = true;
+    /// <summary>Enable thread diagnostics when Threads support is available.</summary>
     bool Threads = true;
+    /// <summary>Enable Event diagnostics when Event transport support is available.</summary>
     bool Events = true;
+    /// <summary>Enable Command diagnostics when Command observer support is available.</summary>
     bool Commands = false;
+    /// <summary>Enable ESP-NOW diagnostics when ESP-NOW observer support is available.</summary>
     bool ESPNow = false;
 };
 
+/// <summary>Aggregates the optional subsystem monitors compiled into ESPressio-Serial behind one lifecycle.</summary>
+/// <remarks>A requested subsystem that is not available at compile time causes Initialize to report failure while still initializing the other requested monitors.</remarks>
 class DiagnosticMonitor final {
 #ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR
     SystemClockMonitor<> _systemClock;
@@ -53,6 +61,10 @@ class DiagnosticMonitor final {
     ESPNowTransportMonitor _espNow;
 #endif
 public:
+    /// <summary>Initializes the selected diagnostic monitors against a shared Arduino Print sink.</summary>
+    /// <param name="output">Destination used by all enabled monitors.</param>
+    /// <param name="config">Subsystems to enable.</param>
+    /// <returns>True only when every requested monitor is available and initializes successfully.</returns>
     bool Initialize(Print& output, const DiagnosticMonitorConfig& config = {}) {
         bool success = true;
 #ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR
@@ -83,6 +95,7 @@ public:
         return success;
     }
 
+    /// <summary>Shuts down every compiled monitor in reverse initialization dependency order.</summary>
     void Shutdown() {
 #ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR
         _espNow.Shutdown();

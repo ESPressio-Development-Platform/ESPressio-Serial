@@ -10,33 +10,40 @@ jobs:
     steps:
       - name: Checkout Serial
         uses: actions/checkout@v4
-      - name: Checkout ESPressio Command 1.0.3
+      - name: Checkout ESPressio System working branch
+        uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: feature/1-system-memory-policy
+          path: deps/ESPressio-System
+      - name: Checkout asynchronous ESPressio Command branch
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Command
-          ref: 1.0.3
+          ref: feature/30-async-command-routing
           path: deps/ESPressio-Command
-      - name: Checkout ESPressio Observable 3.0.2
+      - name: Checkout ESPressio Observable working branch
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: 3.0.2
+          ref: feature/16-rtti-free-observer-registry
           path: deps/ESPressio-Observable
-      - name: Checkout ESPressio Serializable 0.11.3
+      - name: Checkout ESPressio Serializable working branch
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Serializable
-          ref: 0.11.3
+          ref: optimisation/25-psram-buffers
           path: deps/ESPressio-Serializable
-      - name: Checkout ESPressio WiFi 0.2.0
+      - name: Checkout ESPressio WiFi working branch
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-WiFi
-          ref: 0.2.0
+          ref: feature/20-wifi-off-mode
           path: deps/ESPressio-WiFi
       - name: Configure
         run: >-
           cmake -S tests -B build
+          -DESPRESSIO_SYSTEM_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-System/src"
           -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
           -DESPRESSIO_OBSERVABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Observable/src"
           -DESPRESSIO_SERIALIZABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Serializable/src"
@@ -54,29 +61,33 @@ jobs:
         with:
           path: project/ESPressio-Serial
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: 3.0.2, path: project/dependencies/ESPressio-Observable}
+        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: feature/1-system-memory-policy, path: project/dependencies/ESPressio-System}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: 0.11.3, path: project/dependencies/ESPressio-Serializable}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: feature/1-task-execution, path: project/dependencies/ESPressio-Task}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: 0.2.7, path: project/dependencies/ESPressio-Units}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: feature/16-rtti-free-observer-registry, path: project/dependencies/ESPressio-Observable}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: 2.2.8, path: project/dependencies/ESPressio-Timing}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: optimisation/25-psram-buffers, path: project/dependencies/ESPressio-Serializable}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Threads, ref: 3.1.7, path: project/dependencies/ESPressio-Threads}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: main, path: project/dependencies/ESPressio-Units}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Event, ref: 6.0.3, path: project/dependencies/ESPressio-Event}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: feature/29-platform-clock-abstractions, path: project/dependencies/ESPressio-Timing}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Command, ref: 1.0.3, path: project/dependencies/ESPressio-Command}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Threads, ref: optimisation/69-resource-footprint, path: project/dependencies/ESPressio-Threads}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Security, ref: 0.4.2, path: project/dependencies/ESPressio-Security}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Event, ref: feature/57-rtti-free-memory-efficiency, path: project/dependencies/ESPressio-Event}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Persistence, ref: 0.3.2, path: project/dependencies/ESPressio-Persistence}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Command, ref: feature/30-async-command-routing, path: project/dependencies/ESPressio-Command}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Security, ref: optimisation/23-memory-policy-transient-buffers, path: project/dependencies/ESPressio-Security}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Persistence, ref: feature/10-platform-storage-abstractions, path: project/dependencies/ESPressio-Persistence}
       - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-Sockets, ref: 0.7.3, path: project/dependencies/ESPressio-Sockets}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-ESP-Now, ref: 0.8.3, path: project/dependencies/ESPressio-ESP-Now}
+        with: {repository: ESPressio-Development-Platform/ESPressio-ESP-Now, ref: bugfix/39-wifi-coexistence, path: project/dependencies/ESPressio-ESP-Now}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-WiFi, ref: 0.2.0, path: project/dependencies/ESPressio-WiFi}
+        with: {repository: ESPressio-Development-Platform/ESPressio-WiFi, ref: feature/20-wifi-off-mode, path: project/dependencies/ESPressio-WiFi}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -115,6 +126,8 @@ jobs:
               -fno-rtti
           lib_ldf_mode = deep+
           lib_deps =
+              ../dependencies/ESPressio-System
+              ../dependencies/ESPressio-Task
               ../dependencies/ESPressio-Observable
               ../dependencies/ESPressio-Serializable
               ../dependencies/ESPressio-Units
@@ -144,5 +157,5 @@ jobs:
           void setup() {}
           void loop() {}
           EOF
-      - name: Compile ESP32 monitor integrations against released cascade
+      - name: Compile ESP32 monitor integrations against coordinated cascade
         run: pio run -d project/compile
