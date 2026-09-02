@@ -32,7 +32,7 @@ During coordinated development:
 
 ```ini
 lib_deps =
-    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#feature/1-system-memory-policy
+    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#main
     https://github.com/ESPressio-Development-Platform/ESPressio-Logging.git#main
     https://github.com/ESPressio-Development-Platform/ESPressio-Serial.git#feature/40-logging-sink
 ```
