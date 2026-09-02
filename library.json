@@ -13,12 +13,12 @@
     "dependencies": [
         {
             "name": "ESPressio-System",
-            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-System.git#main",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-System.git#structural_realignment",
             "platforms": "*"
         },
         {
             "name": "ESPressio-Logging",
-            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Logging.git#main",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Logging.git#structural_realignment",
             "platforms": "*"
         }
     ]
