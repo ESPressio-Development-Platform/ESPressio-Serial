@@ -101,6 +101,7 @@ int main() {
     );
 
     bool called = false;
+    std::size_t invocationCount = 0;
     std::string lastArguments;
 
     assert(
@@ -109,6 +110,7 @@ int main() {
             "echo test",
             [&](const auto& context) {
                 called = true;
+                ++invocationCount;
                 lastArguments =
                     std::string(
                         context.Arguments
@@ -125,6 +127,7 @@ int main() {
     );
 
     assert(called);
+    assert(invocationCount == 1U);
     assert(lastArguments == "hello world");
 
     bool firstInterceptor = false;
@@ -175,15 +178,37 @@ int main() {
 
     stream.ReadOffset = 0;
     called = false;
+    const auto beforeLf = invocationCount;
 
     console.Poll();
 
     assert(called);
+    assert(invocationCount == beforeLf + 1U);
     assert(lastArguments == "from poll");
     assert(
         console.__GetInputBufferCapacityForTesting() ==
         reservedCapacity
     );
+
+    // CR-only terminals must execute a completed command line.
+    stream.Input = "echo from carriage return\r";
+    stream.ReadOffset = 0;
+    called = false;
+    const auto beforeCr = invocationCount;
+    console.Poll();
+    assert(called);
+    assert(invocationCount == beforeCr + 1U);
+    assert(lastArguments == "from carriage return");
+
+    // CRLF must be treated as one terminator, not two command executions/prompts.
+    stream.Input = "echo from crlf\r\n";
+    stream.ReadOffset = 0;
+    called = false;
+    const auto beforeCrLf = invocationCount;
+    console.Poll();
+    assert(called);
+    assert(invocationCount == beforeCrLf + 1U);
+    assert(lastArguments == "from crlf");
 
     stream.Input =
         std::string(
