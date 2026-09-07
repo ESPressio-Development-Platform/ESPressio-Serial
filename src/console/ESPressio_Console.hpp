@@ -163,6 +163,7 @@ private:
     CommandStorage _commands;
     ConsoleString _line;
     bool _discardUntilNewline = false;
+    bool _suppressFollowingLineFeed = false;
     InterceptorStorage _interceptors;
     uint32_t _nextInterceptorID = 1;
 
@@ -256,6 +257,7 @@ public:
         _config = std::move(preparedConfig);
         _line = std::move(preparedLine);
         _discardUntilNewline = false;
+        _suppressFollowingLineFeed = false;
         PrintPrompt();
         return true;
     }
@@ -271,6 +273,7 @@ public:
         _textOutput.Bind(nullptr);
         _line.clear();
         _discardUntilNewline = false;
+        _suppressFollowingLineFeed = false;
         _interceptors.clear();
     }
 
@@ -360,14 +363,21 @@ public:
     }
 
     /// <summary>Consumes all currently available input bytes, performs line editing/length enforcement, and executes completed lines.</summary>
+    /// <remarks>Carriage-return, line-feed, and CRLF terminators are all accepted. A line-feed immediately following a carriage-return is suppressed so CRLF executes exactly once.</remarks>
     void Poll() {
         if (_input == nullptr || _output == nullptr) return;
         while (_input->Available() > 0) {
             uint8_t value = 0;
             if (!_input->Read(value)) break;
             const char character = static_cast<char>(value);
-            if (character == '\r') continue;
-            if (character == '\n') {
+
+            if (character == '\n' && _suppressFollowingLineFeed) {
+                _suppressFollowingLineFeed = false;
+                continue;
+            }
+
+            if (character == '\r' || character == '\n') {
+                _suppressFollowingLineFeed = character == '\r';
                 if (_discardUntilNewline) {
                     _discardUntilNewline = false;
                     _line.clear();
@@ -381,6 +391,8 @@ public:
                 PrintPrompt();
                 continue;
             }
+
+            _suppressFollowingLineFeed = false;
             if (character == '\b' || character == 0x7F) {
                 if (!_line.empty()) {
                     _line.pop_back();
