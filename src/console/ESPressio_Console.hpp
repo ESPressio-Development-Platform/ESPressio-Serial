@@ -17,6 +17,16 @@
 namespace ESPressio::Serial {
 
 /// <summary>Adapts an ESPressio byte-output abstraction to the Arduino-style print/println surface used by Serial diagnostics.</summary>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(System::IO::IByteOutput) [0 bytes dynamic allocation]
+ * Members:
+ * - _output (System::IO::IByteOutput*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(System::IO::IByteOutput) + 4 bytes known members [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class ByteOutputTextWriter final : public System::IO::IByteOutput {
 private:
     System::IO::IByteOutput* _output = nullptr;
@@ -131,13 +141,42 @@ using Print = ByteOutputTextWriter;
 
 /// <summary>Line-oriented command console operating on platform-neutral ESPressio byte streams.</summary>
 /// <remarks>Console performs no background I/O; callers invoke Poll to consume currently available bytes. Retained command metadata, interceptor records, prompt text, and input-line capacity prefer external memory through ESPressio System.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _input (System::IO::IByteInput*): 4 bytes [0 bytes dynamic allocation]
+ * - _output (System::IO::IByteOutput*): 4 bytes [0 bytes dynamic allocation]
+ * - _textOutput (ByteOutputTextWriter): sizeof(System::IO::IByteOutput) + 4 bytes known members [0 bytes dynamic allocation]
+ * - _config (ConsoleConfig): 6 bytes known members + sizeof(System::Memory::String<System::Memory::MemoryPolicy::ExternalPreferred>) [0 bytes dynamic allocation]
+ * - _commands (CommandStorage): sizeof(CommandStorage) [0 bytes dynamic allocation]
+ * - _line (ConsoleString): sizeof(ConsoleString) [0 bytes dynamic allocation]
+ * - _discardUntilNewline (bool): 1 bytes [0 bytes dynamic allocation]
+ * - _suppressFollowingLineFeed (bool): 1 bytes [0 bytes dynamic allocation]
+ * - _interceptors (InterceptorStorage): sizeof(InterceptorStorage) [0 bytes dynamic allocation]
+ * - _nextInterceptorID (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 14 bytes known members + sizeof(System::IO::IByteOutput) + 4 bytes known members + 6 bytes known members + sizeof(System::Memory::String<System::Memory::MemoryPolicy::ExternalPreferred>) + sizeof(CommandStorage) + sizeof(ConsoleString) + sizeof(InterceptorStorage) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class Console final {
 private:
     static constexpr auto ExternalPreferred =
         System::Memory::MemoryPolicy::ExternalPreferred;
     using ConsoleString = System::Memory::String<ExternalPreferred>;
 
-    struct CommandRegistration {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Name (ConsoleString): sizeof(ConsoleString) [0 bytes dynamic allocation]
+ * - Help (ConsoleString): sizeof(ConsoleString) [0 bytes dynamic allocation]
+ * - Handler (ConsoleCommandHandler): sizeof(ConsoleCommandHandler) [0 bytes dynamic allocation]
+ * Total Memory: sizeof(ConsoleString) + sizeof(ConsoleString) + sizeof(ConsoleCommandHandler) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+struct CommandRegistration {
         ConsoleString Name;
         ConsoleString Help;
         ConsoleCommandHandler Handler;
@@ -147,7 +186,17 @@ private:
         ExternalPreferred
     >;
 
-    struct InterceptorRegistration {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - ID (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - Handler (ConsoleLineInterceptor): sizeof(ConsoleLineInterceptor) [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known members + sizeof(ConsoleLineInterceptor) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+struct InterceptorRegistration {
         uint32_t ID = 0;
         ConsoleLineInterceptor Handler;
     };

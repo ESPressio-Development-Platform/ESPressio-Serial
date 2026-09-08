@@ -154,6 +154,16 @@ inline void PrintEscapedString(
 
 /// <summary>Allocation-free BinaryArchive visitor that renders a bounded structured Event payload to an Arduino Print sink.</summary>
 /// <remarks>Traversal limits are enforced by the caller before and during visitation; strings are additionally truncated to the monitor's configured maximum length.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _output (Print&): 4 bytes [0 bytes dynamic allocation]
+ * - _config (EventMonitorConfig&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class StructuredPayloadPrinter final :
     public Serializable::BinaryArchiveVisitor {
 private:

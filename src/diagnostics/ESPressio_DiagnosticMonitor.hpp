@@ -29,6 +29,18 @@
 namespace ESPressio::Serial {
 
 /// <summary>Selects which available subsystem monitors are aggregated by DiagnosticMonitor.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - SystemClock (bool): 1 bytes [0 bytes dynamic allocation]
+ * - Threads (bool): 1 bytes [0 bytes dynamic allocation]
+ * - Events (bool): 1 bytes [0 bytes dynamic allocation]
+ * - Commands (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ESPNow (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 5 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct DiagnosticMonitorConfig {
     /// <summary>Enable System Clock diagnostics when Timing support is available.</summary>
     bool SystemClock = true;
@@ -44,6 +56,19 @@ struct DiagnosticMonitorConfig {
 
 /// <summary>Aggregates the optional subsystem monitors compiled into ESPressio-Serial behind one lifecycle.</summary>
 /// <remarks>A requested subsystem that is not available at compile time causes Initialize to report failure while still initializing the other requested monitors.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _systemClock (#ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR SystemClockMonitor<>): sizeof(#ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR SystemClockMonitor<>) [0 bytes dynamic allocation]
+ * - _threads (#endif #ifdef ESPRESSIO_SERIAL_HAS_THREAD_MONITOR ThreadMonitor): sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_THREAD_MONITOR ThreadMonitor) [0 bytes dynamic allocation]
+ * - _events (#endif #ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR EventMonitor): sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR EventMonitor) [0 bytes dynamic allocation]
+ * - _commands (#endif #ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR CommandMonitor): sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR CommandMonitor) [0 bytes dynamic allocation]
+ * - _espNow (#endif #ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR ESPNowTransportMonitor): sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR ESPNowTransportMonitor) [0 bytes dynamic allocation]
+ * Total Memory: sizeof(#ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR SystemClockMonitor<>) + sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_THREAD_MONITOR ThreadMonitor) + sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR EventMonitor) + sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR CommandMonitor) + sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR ESPNowTransportMonitor) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class DiagnosticMonitor final {
 #ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR
     SystemClockMonitor<> _systemClock;

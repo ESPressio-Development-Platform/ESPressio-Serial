@@ -16,6 +16,17 @@ namespace ESPressio::Serial {
 
 /// <summary>Synchronously renders ESPressio structured log records to a byte-output destination.</summary>
 /// <remarks>The Sink owns no output buffer, never retains the supplied LogRecordLease, and serializes complete records so concurrent callers cannot interleave one another's output fragments.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Logging::ILogSink) [0 bytes dynamic allocation]
+ * Members:
+ * - _output (System::IO::IByteOutput*): 4 bytes [0 bytes dynamic allocation]
+ * - _writeMutex (std::mutex): sizeof(std::mutex) [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Logging::ILogSink) + 4 bytes known members + sizeof(std::mutex) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class SerialLogSink final : public Logging::ILogSink {
     System::IO::IByteOutput* _output = nullptr;
     std::atomic<Logging::LogLevelMask> _levelMask{Logging::AllLogLevels};

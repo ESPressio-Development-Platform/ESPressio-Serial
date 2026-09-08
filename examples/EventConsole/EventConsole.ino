@@ -6,6 +6,17 @@
 #include <ESPressio_Console.hpp>
 #include <ESPressio_EventConsole.hpp>
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Members:
+ * - Message (String): 12 bytes [Capacity + 1 bytes (Arduino String backing buffer when allocated)]
+ * - Sequence (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 16 bytes known members [Message: Capacity + 1 bytes (Arduino String backing buffer when allocated)]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class OperatorMessageEvent final :
     public ESPressio::Event::
         SerializableEvent<

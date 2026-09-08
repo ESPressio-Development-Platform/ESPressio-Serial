@@ -40,6 +40,21 @@ namespace ESPressio::Serial {
 /// the observed Event transport worker's constrained stack. The diagnostic queue also prefers external
 /// storage while the worker task stack and synchronization path remain platform-safe/internal.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
+ * - _manager (Event::EventTransportManager*): 4 bytes [0 bytes dynamic allocation]
+ * - _config (EventMonitorConfig): 40 bytes [0 bytes dynamic allocation]
+ * - _observerHandle (Observable::ObserverHandlePtr): sizeof(Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
+ * - _mutex (std::mutex): sizeof(std::mutex) [0 bytes dynamic allocation]
+ * - _initialized (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + 49 bytes known members + sizeof(Observable::ObserverHandlePtr) + sizeof(std::mutex) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class EventMonitor final :
     public Event::IEventTransportManagerObserver {
 
@@ -61,7 +76,19 @@ private:
     static constexpr std::size_t DiagnosticQueueDepth = 4;
 
     /// <summary>Owns every transient view required to render a transaction after its originating callback returns.</summary>
-    struct TransactionSnapshot {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Provider (System::Memory::IMemoryProvider*): 4 bytes [0 bytes dynamic allocation]
+ * - EventTypeName (SnapshotString): sizeof(SnapshotString) [0 bytes dynamic allocation]
+ * - Payload (SnapshotBytes): sizeof(SnapshotBytes) [0 bytes dynamic allocation]
+ * - Output (Print*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes known members + sizeof(SnapshotString) + sizeof(SnapshotBytes) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+struct TransactionSnapshot {
         System::Memory::IMemoryProvider* Provider = nullptr;
         Event::EventTransportTransaction Transaction{};
         SnapshotString EventTypeName;
@@ -107,7 +134,15 @@ private:
     };
 
     /// <summary>Trivially-copyable queue item used by the bounded TaskExecutor.</summary>
-    struct DiagnosticWorkItem {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Snapshot (TransactionSnapshot*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct DiagnosticWorkItem {
         TransactionSnapshot* Snapshot = nullptr;
     };
 
@@ -117,7 +152,21 @@ private:
     );
 
     /// <summary>Bounded byte sink used while composing one Event diagnostic record.</summary>
-    class BufferedOutput final : public System::IO::IByteOutput {
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(System::IO::IByteOutput) [0 bytes dynamic allocation]
+ * Members:
+ * - _buffer (RenderBuffer): sizeof(RenderBuffer) [0 bytes dynamic allocation]
+ * - _maximumBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _writer (ByteOutputTextWriter): sizeof(System::IO::IByteOutput) + 4 bytes known members [0 bytes dynamic allocation]
+ * - _truncated (bool): 1 bytes [0 bytes dynamic allocation]
+ * - _renderFailed (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(System::IO::IByteOutput) + 6 bytes known members + sizeof(RenderBuffer) + sizeof(System::IO::IByteOutput) + 4 bytes known members [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+class BufferedOutput final : public System::IO::IByteOutput {
     public:
         explicit BufferedOutput(std::size_t maximumBytes)
             : _maximumBytes(maximumBytes),

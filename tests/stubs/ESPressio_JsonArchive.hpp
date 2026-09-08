@@ -6,6 +6,14 @@
 
 namespace ESPressio::Serializable {
 
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _node (SerializationNode): 0 bytes [0 bytes dynamic allocation]
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class JsonArchive {
 private:
     SerializationNode _node;

@@ -3,6 +3,16 @@
 
 #include <ESPressio_EventConsole.hpp>
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(ESPressio::System::IO::IByteStream) [0 bytes dynamic allocation]
+ * Members:
+ * - Output (std::string): 24 bytes [Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * Total Memory: sizeof(ESPressio::System::IO::IByteStream) + 24 bytes known members [Output: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class TestStream final :
     public ESPressio::System::IO::IByteStream {
 

@@ -21,12 +21,36 @@ namespace ESPressio::Serial {
 
 /// <summary>Integrates ESPressio Command parsing/execution with the line-oriented Serial Console.</summary>
 /// <remarks>Recognized console lines enter Command through the asynchronous inbound Event/envelope path; explicit Execute calls remain synchronous local invocations. Borrowed command text is preserved across recognition and direct execution so console ingress does not materialize temporary standard strings.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _console (Console*): 4 bytes [0 bytes dynamic allocation]
+ * - _registry (Command::CommandRegistry*): 4 bytes [0 bytes dynamic allocation]
+ * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
+ * - _interceptorID (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - _responseRoute (std::shared_ptr<ResponseRoute>): 8 bytes [shared control block (~12+ bytes) and, when owning separately, object sizeof(Command::ICommandResponseRoute) + 4 bytes known members]
+ * - _responseRouteId (Command::CommandTransportRouteId): sizeof(Command::CommandTransportRouteId) [0 bytes dynamic allocation]
+ * Total Memory: 24 bytes known members + sizeof(Command::CommandTransportRouteId) [_responseRoute: shared control block (~12+ bytes) and, when owning separately, object sizeof(Command::ICommandResponseRoute) + 4 bytes known members]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class CommandConsole final {
 private:
     static constexpr auto ExternalPreferred =
         System::Memory::MemoryPolicy::ExternalPreferred;
 
-    class ResponseRoute final : public Command::ICommandResponseRoute {
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Command::ICommandResponseRoute) [0 bytes dynamic allocation]
+ * Members:
+ * - _owner (CommandConsole*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Command::ICommandResponseRoute) + 4 bytes known members [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+class ResponseRoute final : public Command::ICommandResponseRoute {
         CommandConsole* _owner = nullptr;
 
     public:

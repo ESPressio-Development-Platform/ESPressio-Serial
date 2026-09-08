@@ -14,6 +14,17 @@
 namespace ESPressio::Serial {
 
 /// <summary>Writes System Clock mutation, synchronization, and scheduled-callback activity to an Arduino Print sink.</summary>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(ESPressio::Timing::ISystemClockObserver<TTick>) [0 bytes dynamic allocation]
+ * Members:
+ * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
+ * - _handle (ESPressio::Observable::ObserverHandlePtr): sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
+ * Total Memory: sizeof(ESPressio::Timing::ISystemClockObserver<TTick>) + 4 bytes known members + sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<typename TTick = ESPressio::Timing::ClockTick>
 class SystemClockMonitor final :
     public ESPressio::Timing::ISystemClockObserver<TTick> {

@@ -6,7 +6,23 @@
 namespace ESPressio::Serial {
 
 /// <summary>Selects whether Event monitoring reports event traffic or event lifecycle activity.</summary>
-enum class EventMonitorMode : uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class EventMonitorMode : uint8_t {
     /// <summary>Report dispatched/transported events.</summary>
     Events,
     /// <summary>Report event lifecycle activity.</summary>
@@ -14,7 +30,23 @@ enum class EventMonitorMode : uint8_t {
 };
 
 /// <summary>Selects how an Event monitor renders event payload content.</summary>
-enum class EventMonitorPayloadFormat : uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class EventMonitorPayloadFormat : uint8_t {
     /// <summary>Do not render payload content.</summary>
     None,
     /// <summary>Render a compact payload summary.</summary>
@@ -26,6 +58,35 @@ enum class EventMonitorPayloadFormat : uint8_t {
 };
 
 /// <summary>Controls Event monitor direction, metadata, payload formatting, and output bounds.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Mode (EventMonitorMode): 1 bytes [0 bytes dynamic allocation]
+ * - PayloadFormat (EventMonitorPayloadFormat): 1 bytes [0 bytes dynamic allocation]
+ * - ShowInbound (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowOutbound (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowFailures (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowStableTypeName (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowTypeID (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowSchemaVersion (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowMessageID (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowTransportAddress (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowDispatchMetadata (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowOrigin (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowHopCount (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowTransportAccepted (bool): 1 bytes [0 bytes dynamic allocation]
+ * - PrettyStructuredPayload (bool): 1 bytes [0 bytes dynamic allocation]
+ * - MaximumRenderedBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - MaximumHexPayloadBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - MaximumCollectionItems (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - MaximumStringLength (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - MaximumStructuredNodes (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - MaximumStructuredDepth (uint8_t): 1 bytes [0 bytes dynamic allocation]
+ * - IndentSpaces (uint8_t): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 40 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct EventMonitorConfig {
     /// <summary>Activity category reported by the monitor.</summary>
     EventMonitorMode Mode =

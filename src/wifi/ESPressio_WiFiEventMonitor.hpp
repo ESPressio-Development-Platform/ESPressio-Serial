@@ -13,6 +13,19 @@ namespace ESPressio::Serial {
 
 /// <summary>Observes Wi-Fi Events and writes concise diagnostics to an Arduino Print sink.</summary>
 /// <remarks>The retained listener-handle table uses ESPressio System ExternalPreferred storage so optional diagnostics do not consume scarce internal DRAM for long-lived registry capacity.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Thread) + sizeof(EventReceiver) + 4 bytes known members + 4 bytes vptr + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) [EventThread: EventThreadBase: _eventSignal: owned object: sizeof(System::Synchronization::ISignal)]
+ * Requires Stack/Heap Preallocation
+ * Members:
+ * - _output (Print&): 4 bytes [0 bytes dynamic allocation]
+ * - _handles (ListenerHandleStorage): sizeof(ListenerHandleStorage) [0 bytes dynamic allocation]
+ * - _listenersRegistered (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Thread) + sizeof(EventReceiver) + 4 bytes known members + 4 bytes vptr + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + 5 bytes known members + sizeof(ListenerHandleStorage) [EventThread: EventThreadBase: _eventSignal: owned object: sizeof(System::Synchronization::ISignal)]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class WiFiEventMonitor final : public Event::EventThread {
 public:
     explicit WiFiEventMonitor(Print& output)

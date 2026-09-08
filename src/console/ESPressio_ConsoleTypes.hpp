@@ -10,7 +10,23 @@
 namespace ESPressio::Serial {
 
 /// <summary>Outcome from parsing and executing one console input line.</summary>
-enum class ConsoleExecutionResult : uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ConsoleExecutionResult : uint8_t {
     Executed,
     Empty,
     UnknownCommand,
@@ -18,6 +34,18 @@ enum class ConsoleExecutionResult : uint8_t {
 };
 
 /// <summary>Configures console line buffering, input echo, and prompt presentation.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - MaximumLineLength (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - EchoInput (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ShowPrompt (bool): 1 bytes [0 bytes dynamic allocation]
+ * - Prompt (System::Memory::String<System::Memory::MemoryPolicy::ExternalPreferred>): sizeof(System::Memory::String<System::Memory::MemoryPolicy::ExternalPreferred>) [0 bytes dynamic allocation]
+ * Total Memory: 6 bytes known members + sizeof(System::Memory::String<System::Memory::MemoryPolicy::ExternalPreferred>) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 struct ConsoleConfig {
     /// <summary>Maximum accepted input line length before characters are discarded until newline.</summary>
     std::size_t MaximumLineLength = 2048;
@@ -30,6 +58,16 @@ struct ConsoleConfig {
 };
 
 /// <summary>Non-owning command and argument views supplied to a registered console command handler.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Command (std::string_view): sizeof(std::string_view) [0 bytes dynamic allocation]
+ * - Arguments (std::string_view): sizeof(std::string_view) [0 bytes dynamic allocation]
+ * Total Memory: sizeof(std::string_view) + sizeof(std::string_view) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 struct ConsoleCommandContext {
     std::string_view Command;
     std::string_view Arguments;
