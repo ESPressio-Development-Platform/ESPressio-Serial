@@ -9,13 +9,13 @@
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - Command (String): 12 bytes [Capacity + 1 bytes (Arduino String backing buffer when allocated)]
+ * - Command (String): 12 bytes [Capacity + 1 bytes backing buffer when allocated]
  * - Value (int32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 16 bytes known members [Command: Capacity + 1 bytes (Arduino String backing buffer when allocated)]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 40 bytes [Command: Capacity + 1 bytes backing buffer when allocated]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class RemoteCommandEvent final :
@@ -57,7 +57,7 @@ ESPRESSIO_EVENT_TRANSPORT_TYPE(
  * Members:
  * - _receiver (ESPressio::Event::IEventTransportReceiver*): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class LoopbackTransport final :

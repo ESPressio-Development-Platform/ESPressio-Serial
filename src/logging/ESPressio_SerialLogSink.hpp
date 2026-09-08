@@ -18,13 +18,14 @@ namespace ESPressio::Serial {
 /// <remarks>The Sink owns no output buffer, never retains the supplied LogRecordLease, and serializes complete records so concurrent callers cannot interleave one another's output fragments.</remarks>
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(Logging::ILogSink) [0 bytes dynamic allocation]
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
  * Members:
  * - _output (System::IO::IByteOutput*): 4 bytes [0 bytes dynamic allocation]
- * - _writeMutex (std::mutex): sizeof(std::mutex) [0 bytes dynamic allocation]
- * Total Memory: sizeof(Logging::ILogSink) + 4 bytes known members + sizeof(std::mutex) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - _levelMask (std::atomic<Logging::LogLevelMask>): 1 bytes [0 bytes dynamic allocation]
+ * - _writeMutex (std::mutex): 4 bytes [native synchronization state may allocate platform resources lazily]
+ * Total Memory: 16 bytes [_writeMutex: native synchronization state may allocate platform resources lazily]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class SerialLogSink final : public Logging::ILogSink {

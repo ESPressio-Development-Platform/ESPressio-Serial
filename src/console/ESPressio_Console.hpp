@@ -19,12 +19,11 @@ namespace ESPressio::Serial {
 /// <summary>Adapts an ESPressio byte-output abstraction to the Arduino-style print/println surface used by Serial diagnostics.</summary>
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(System::IO::IByteOutput) [0 bytes dynamic allocation]
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
  * Members:
  * - _output (System::IO::IByteOutput*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(System::IO::IByteOutput) + 4 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class ByteOutputTextWriter final : public System::IO::IByteOutput {
@@ -146,17 +145,17 @@ using Print = ByteOutputTextWriter;
  * Members:
  * - _input (System::IO::IByteInput*): 4 bytes [0 bytes dynamic allocation]
  * - _output (System::IO::IByteOutput*): 4 bytes [0 bytes dynamic allocation]
- * - _textOutput (ByteOutputTextWriter): sizeof(System::IO::IByteOutput) + 4 bytes known members [0 bytes dynamic allocation]
- * - _config (ConsoleConfig): 6 bytes known members + sizeof(System::Memory::String<System::Memory::MemoryPolicy::ExternalPreferred>) [0 bytes dynamic allocation]
- * - _commands (CommandStorage): sizeof(CommandStorage) [0 bytes dynamic allocation]
- * - _line (ConsoleString): sizeof(ConsoleString) [0 bytes dynamic allocation]
+ * - _textOutput (ByteOutputTextWriter): 8 bytes [0 bytes dynamic allocation]
+ * - _config (ConsoleConfig): 32 bytes [Prompt: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * - _commands (CommandStorage): 12 bytes [Capacity * (52 bytes) element storage; N live elements each: Name: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; N live elements each: Help: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * - _line (ConsoleString): 24 bytes [_value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
  * - _discardUntilNewline (bool): 1 bytes [0 bytes dynamic allocation]
  * - _suppressFollowingLineFeed (bool): 1 bytes [0 bytes dynamic allocation]
- * - _interceptors (InterceptorStorage): sizeof(InterceptorStorage) [0 bytes dynamic allocation]
+ * - _interceptors (InterceptorStorage): 12 bytes [Capacity * (20 bytes) element storage; N live elements each: Handler: callable allocation only when target exceeds small-object buffer]
  * - _nextInterceptorID (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 14 bytes known members + sizeof(System::IO::IByteOutput) + 4 bytes known members + 6 bytes known members + sizeof(System::Memory::String<System::Memory::MemoryPolicy::ExternalPreferred>) + sizeof(CommandStorage) + sizeof(ConsoleString) + sizeof(InterceptorStorage) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 104 bytes [_config: Prompt: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _commands: Capacity * (52 bytes) element storage; _commands: N live elements each: Name: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _commands: N live elements each: Help: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _line: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _interceptors: Capacity * (20 bytes) element storage; _interceptors: N live elements each: Handler: callable allocation only when target exceeds small-object buffer]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class Console final {
@@ -168,12 +167,12 @@ private:
 /**
  * ESPressio Memory Audit
  * Members:
- * - Name (ConsoleString): sizeof(ConsoleString) [0 bytes dynamic allocation]
- * - Help (ConsoleString): sizeof(ConsoleString) [0 bytes dynamic allocation]
- * - Handler (ConsoleCommandHandler): sizeof(ConsoleCommandHandler) [0 bytes dynamic allocation]
- * Total Memory: sizeof(ConsoleString) + sizeof(ConsoleString) + sizeof(ConsoleCommandHandler) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - Name (ConsoleString): 24 bytes [_value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * - Help (ConsoleString): 24 bytes [_value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * - Handler (ConsoleCommandHandler): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 52 bytes [Name: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Help: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 struct CommandRegistration {
@@ -190,10 +189,10 @@ struct CommandRegistration {
  * ESPressio Memory Audit
  * Members:
  * - ID (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - Handler (ConsoleLineInterceptor): sizeof(ConsoleLineInterceptor) [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known members + sizeof(ConsoleLineInterceptor) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - Handler (ConsoleLineInterceptor): 16 bytes [callable allocation only when target exceeds small-object buffer]
+ * Total Memory: 20 bytes [Handler: callable allocation only when target exceeds small-object buffer]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 struct InterceptorRegistration {

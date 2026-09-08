@@ -13,13 +13,13 @@ namespace ESPressio::Serial {
 /// <summary>Writes Command registry registration activity to an Arduino Print sink.</summary>
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(ESPressio::Command::ICommandRegistryObserver) [0 bytes dynamic allocation]
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
  * Members:
  * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
- * - _handle (ESPressio::Observable::ObserverHandlePtr): sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * Total Memory: sizeof(ESPressio::Command::ICommandRegistryObserver) + 4 bytes known members + sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - _handle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
+ * Total Memory: 20 bytes [_handle: owned object: 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class CommandMonitor final :

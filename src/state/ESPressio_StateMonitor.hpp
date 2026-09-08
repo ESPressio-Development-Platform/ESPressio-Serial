@@ -14,16 +14,16 @@ namespace ESPressio::Serial {
 /// <remarks>Each State subsystem may be observed independently; Shutdown releases all active observer registrations.</remarks>
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(ESPressio::State::IRemoteStateManagerObserver) + sizeof(ESPressio::State::IStateSubscriptionRegistryObserver) + sizeof(ESPressio::State::IStateSubscriberRegistryObserver) + sizeof(ESPressio::State::IStatePublisherObserver) + sizeof(ESPressio::State::IStatePublicationObserver) [0 bytes dynamic allocation]
+ * Inherited Memory Total: sizeof(ESPressio::State::IStatePublicationObserver) (target/toolchain dependent) [0 bytes dynamic allocation]
  * Members:
  * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
- * - _remoteStateHandle (ESPressio::Observable::ObserverHandlePtr): sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * - _subscriptionHandle (ESPressio::Observable::ObserverHandlePtr): sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * - _subscriberHandle (ESPressio::Observable::ObserverHandlePtr): sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * - _publisherHandle (ESPressio::Observable::ObserverHandlePtr): sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * - _publicationHandle (ESPressio::Observable::ObserverHandlePtr): sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * Total Memory: sizeof(ESPressio::State::IRemoteStateManagerObserver) + sizeof(ESPressio::State::IStateSubscriptionRegistryObserver) + sizeof(ESPressio::State::IStateSubscriberRegistryObserver) + sizeof(ESPressio::State::IStatePublisherObserver) + sizeof(ESPressio::State::IStatePublicationObserver) + 4 bytes known members + sizeof(ESPressio::Observable::ObserverHandlePtr) + sizeof(ESPressio::Observable::ObserverHandlePtr) + sizeof(ESPressio::Observable::ObserverHandlePtr) + sizeof(ESPressio::Observable::ObserverHandlePtr) + sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * - _remoteStateHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
+ * - _subscriptionHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
+ * - _subscriberHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
+ * - _publisherHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
+ * - _publicationHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
+ * Total Memory: 80 bytes known/aligned storage + sizeof(ESPressio::State::IStatePublicationObserver) (target/toolchain dependent) [_remoteStateHandle: owned object: 4 bytes; _subscriptionHandle: owned object: 4 bytes; _subscriberHandle: owned object: 4 bytes; _publisherHandle: owned object: 4 bytes; _publicationHandle: owned object: 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */

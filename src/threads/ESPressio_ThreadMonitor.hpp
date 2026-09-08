@@ -13,14 +13,14 @@ namespace ESPressio::Serial {
 /// <summary>Writes ThreadManager and termination-dispatcher lifecycle activity to an Arduino Print sink.</summary>
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(Observable::IObserver) + 4 bytes vptr + sizeof(Observable::IObserver) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 8 bytes [0 bytes dynamic allocation]
  * Members:
  * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
- * - _managerHandle (ESPressio::Observable::ObserverHandlePtr): sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * - _terminationHandle (ESPressio::Observable::ObserverHandlePtr): sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * Total Memory: sizeof(Observable::IObserver) + 4 bytes vptr + sizeof(Observable::IObserver) + 4 bytes vptr + 4 bytes known members + sizeof(ESPressio::Observable::ObserverHandlePtr) + sizeof(ESPressio::Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - _managerHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
+ * - _terminationHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
+ * Total Memory: 36 bytes [_managerHandle: owned object: 4 bytes; _terminationHandle: owned object: 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class ThreadMonitor final :

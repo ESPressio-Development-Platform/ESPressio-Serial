@@ -28,10 +28,11 @@ namespace ESPressio::Serial {
  * - _registry (Command::CommandRegistry*): 4 bytes [0 bytes dynamic allocation]
  * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
  * - _interceptorID (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - _responseRoute (std::shared_ptr<ResponseRoute>): 8 bytes [shared control block (~12+ bytes) and, when owning separately, object sizeof(Command::ICommandResponseRoute) + 4 bytes known members]
- * - _responseRouteId (Command::CommandTransportRouteId): sizeof(Command::CommandTransportRouteId) [0 bytes dynamic allocation]
- * Total Memory: 24 bytes known members + sizeof(Command::CommandTransportRouteId) [_responseRoute: shared control block (~12+ bytes) and, when owning separately, object sizeof(Command::ICommandResponseRoute) + 4 bytes known members]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * - _responseRoute (std::shared_ptr<ResponseRoute>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 8 bytes known/aligned storage + sizeof(Command::ICommandResponseRoute) (target/toolchain dependent)]
+ * - _responseRouteId (Command::CommandTransportRouteId): sizeof(Command::CommandTransportRouteId) (target/toolchain dependent) [0 bytes dynamic allocation]
+ * - _nextRequestId (std::atomic<Command::CommandRequestId>): sizeof(Command::CommandRequestId) (target/toolchain dependent) [0 bytes dynamic allocation]
+ * Total Memory: 28 bytes known/aligned storage + sizeof(Command::CommandTransportRouteId) (target/toolchain dependent) + sizeof(Command::CommandRequestId) (target/toolchain dependent) [_responseRoute: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 8 bytes known/aligned storage + sizeof(Command::ICommandResponseRoute) (target/toolchain dependent)]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
@@ -42,11 +43,11 @@ private:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(Command::ICommandResponseRoute) [0 bytes dynamic allocation]
+ * Inherited Memory Total: sizeof(Command::ICommandResponseRoute) (target/toolchain dependent) [0 bytes dynamic allocation]
  * Members:
  * - _owner (CommandConsole*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(Command::ICommandResponseRoute) + 4 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Total Memory: 8 bytes known/aligned storage + sizeof(Command::ICommandResponseRoute) (target/toolchain dependent) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */

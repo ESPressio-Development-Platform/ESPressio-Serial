@@ -38,12 +38,12 @@ namespace ESPressio::Serial {
  * - _console (Console*): 4 bytes [0 bytes dynamic allocation]
  * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
  * - _manager (Event::EventTransportManager*): 4 bytes [0 bytes dynamic allocation]
- * - _config (EventConsoleConfig): 16 bytes [0 bytes dynamic allocation]
- * - _allowList (std::unordered_set<std::string>): 28 bytes [BucketCount * 4 bytes + N * (node/hash overhead + 24 bytes)]
- * - _denyList (std::unordered_set<std::string>): 28 bytes [BucketCount * 4 bytes + N * (node/hash overhead + 24 bytes)]
+ * - _config (EventConsoleConfig): 24 bytes [0 bytes dynamic allocation]
+ * - _allowList (std::unordered_set<std::string>): 28 bytes [BucketCount * 4 bytes + N * (hash-node/link overhead + 24 bytes value); element: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * - _denyList (std::unordered_set<std::string>): 28 bytes [BucketCount * 4 bytes + N * (hash-node/link overhead + 24 bytes value); element: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
  * - _interceptorID (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - _eventCommandRegistration (Command::CommandRegistrationHandle): 4 bytes [0 bytes dynamic allocation]
- * - _eventsCommandRegistration (Command::CommandRegistrationHandle): 4 bytes [0 bytes dynamic allocation]
+ * - _eventCommandRegistration (Command::CommandRegistrationHandle): 16 bytes [path_: Capacity * (24 bytes) element storage; path_: N live elements each: CommandStringStorage: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * - _eventsCommandRegistration (Command::CommandRegistrationHandle): 16 bytes [path_: Capacity * (24 bytes) element storage; path_: N live elements each: CommandStringStorage: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
  * - _commandBacked (bool): 1 bytes [0 bytes dynamic allocation]
  * - _state (InteractionState): 1 bytes [0 bytes dynamic allocation]
  * - _pendingTypeName (std::string): 24 bytes [Capacity + 1 bytes when capacity exceeds 15-byte SSO]
@@ -51,10 +51,10 @@ namespace ESPressio::Serial {
  * - _pendingPriority (Event::EventPriority): 4 bytes [0 bytes dynamic allocation]
  * - _pendingDefaultDirection (Event::EventTransportDirection): 1 bytes [0 bytes dynamic allocation]
  * - _pendingEvent (std::unique_ptr<Event::IEvent>): 4 bytes [owned object: 4 bytes]
- * - _mutex (std::mutex): sizeof(std::mutex) [0 bytes dynamic allocation]
- * Total Memory: 135 bytes known members + sizeof(std::mutex) [_allowList: BucketCount * 4 bytes + N * (node/hash overhead + 24 bytes); _denyList: BucketCount * 4 bytes + N * (node/hash overhead + 24 bytes); _pendingTypeName: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _pendingEvent: owned object: 4 bytes]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - _mutex (std::mutex): 4 bytes [native synchronization state may allocate platform resources lazily]
+ * Total Memory: 176 bytes [_allowList: BucketCount * 4 bytes + N * (hash-node/link overhead + 24 bytes value); _allowList: element: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _denyList: BucketCount * 4 bytes + N * (hash-node/link overhead + 24 bytes value); _denyList: element: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _eventCommandRegistration: path_: Capacity * (24 bytes) element storage; _eventCommandRegistration: path_: N live elements each: CommandStringStorage: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _eventsCommandRegistration: path_: Capacity * (24 bytes) element storage; _eventsCommandRegistration: path_: N live elements each: CommandStringStorage: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _pendingTypeName: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _pendingEvent: owned object: 4 bytes; _mutex: native synchronization state may allocate platform resources lazily]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class EventConsole final {
@@ -63,18 +63,10 @@ private:
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class InteractionState : uint8_t {
         None,
         AwaitingJson,

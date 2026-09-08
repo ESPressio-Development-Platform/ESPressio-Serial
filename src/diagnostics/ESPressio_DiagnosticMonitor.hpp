@@ -38,7 +38,7 @@ namespace ESPressio::Serial {
  * - Commands (bool): 1 bytes [0 bytes dynamic allocation]
  * - ESPNow (bool): 1 bytes [0 bytes dynamic allocation]
  * Total Memory: 5 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct DiagnosticMonitorConfig {
@@ -59,13 +59,13 @@ struct DiagnosticMonitorConfig {
 /**
  * ESPressio Memory Audit
  * Members:
- * - _systemClock (#ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR SystemClockMonitor<>): sizeof(#ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR SystemClockMonitor<>) [0 bytes dynamic allocation]
- * - _threads (#endif #ifdef ESPRESSIO_SERIAL_HAS_THREAD_MONITOR ThreadMonitor): sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_THREAD_MONITOR ThreadMonitor) [0 bytes dynamic allocation]
- * - _events (#endif #ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR EventMonitor): sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR EventMonitor) [0 bytes dynamic allocation]
- * - _commands (#endif #ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR CommandMonitor): sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR CommandMonitor) [0 bytes dynamic allocation]
- * - _espNow (#endif #ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR ESPNowTransportMonitor): sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR ESPNowTransportMonitor) [0 bytes dynamic allocation]
- * Total Memory: sizeof(#ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR SystemClockMonitor<>) + sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_THREAD_MONITOR ThreadMonitor) + sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR EventMonitor) + sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR CommandMonitor) + sizeof(#endif #ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR ESPNowTransportMonitor) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * - _systemClock (SystemClockMonitor<>): 20 bytes [_handle: owned object: 4 bytes]
+ * - _threads (ThreadMonitor): 36 bytes [_managerHandle: owned object: 4 bytes; _terminationHandle: owned object: 4 bytes]
+ * - _events (EventMonitor): 232 bytes [_observerHandle: owned object: 4 bytes; _worker: _handler: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _worker: _handler: LastId: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _worker: _queue: owned object: 4 bytes; _worker: _startGate: owned object: 4 bytes; _worker: _lifecycleMutex: _owned: owned object: 4 bytes; _worker: _lifecycleMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; _mutex: native synchronization state may allocate platform resources lazily]
+ * - _commands (CommandMonitor): 20 bytes [_handle: owned object: 4 bytes]
+ * - _espNow (ESPNowTransportMonitor): 20 bytes known/aligned storage + sizeof(ESPressio::ESPNow::IESPNowTransportObserver) (target/toolchain dependent) [_handle: owned object: 4 bytes]
+ * Total Memory: 308 bytes known/aligned storage + 20 bytes known/aligned storage + sizeof(ESPressio::ESPNow::IESPNowTransportObserver) (target/toolchain dependent) [_systemClock: _handle: owned object: 4 bytes; _threads: _managerHandle: owned object: 4 bytes; _threads: _terminationHandle: owned object: 4 bytes; _events: _observerHandle: owned object: 4 bytes; _events: _worker: _handler: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _events: _worker: _handler: LastId: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _events: _worker: _queue: owned object: 4 bytes; _events: _worker: _startGate: owned object: 4 bytes; _events: _worker: _lifecycleMutex: _owned: owned object: 4 bytes; _events: _worker: _lifecycleMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; _events: _mutex: native synchronization state may allocate platform resources lazily; _commands: _handle: owned object: 4 bytes; _espNow: _handle: owned object: 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */

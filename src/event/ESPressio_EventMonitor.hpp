@@ -47,12 +47,13 @@ namespace ESPressio::Serial {
  * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
  * - _manager (Event::EventTransportManager*): 4 bytes [0 bytes dynamic allocation]
  * - _config (EventMonitorConfig): 40 bytes [0 bytes dynamic allocation]
- * - _observerHandle (Observable::ObserverHandlePtr): sizeof(Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * - _mutex (std::mutex): sizeof(std::mutex) [0 bytes dynamic allocation]
+ * - _observerHandle (Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
+ * - _worker (Task::TaskExecutor<DiagnosticWorkItem>): 160 bytes [_handler: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _handler: LastId: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _queue: owned object: 4 bytes; _startGate: owned object: 4 bytes; _lifecycleMutex: _owned: owned object: 4 bytes; _lifecycleMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
+ * - _mutex (std::mutex): 4 bytes [native synchronization state may allocate platform resources lazily]
  * - _initialized (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known bases + 49 bytes known members + sizeof(Observable::ObserverHandlePtr) + sizeof(std::mutex) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 232 bytes [_observerHandle: owned object: 4 bytes; _worker: _handler: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _worker: _handler: LastId: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _worker: _queue: owned object: 4 bytes; _worker: _startGate: owned object: 4 bytes; _worker: _lifecycleMutex: _owned: owned object: 4 bytes; _worker: _lifecycleMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; _mutex: native synchronization state may allocate platform resources lazily]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class EventMonitor final :
@@ -80,12 +81,14 @@ private:
  * ESPressio Memory Audit
  * Members:
  * - Provider (System::Memory::IMemoryProvider*): 4 bytes [0 bytes dynamic allocation]
- * - EventTypeName (SnapshotString): sizeof(SnapshotString) [0 bytes dynamic allocation]
- * - Payload (SnapshotBytes): sizeof(SnapshotBytes) [0 bytes dynamic allocation]
+ * - Transaction (Event::EventTransportTransaction): 60 bytes [0 bytes dynamic allocation]
+ * - EventTypeName (SnapshotString): 24 bytes [_value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * - Payload (SnapshotBytes): 12 bytes [Capacity * (1 bytes) element storage]
+ * - Config (EventMonitorConfig): 40 bytes [0 bytes dynamic allocation]
  * - Output (Print*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes known members + sizeof(SnapshotString) + sizeof(SnapshotBytes) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 144 bytes [EventTypeName: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Payload: Capacity * (1 bytes) element storage]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 struct TransactionSnapshot {
@@ -139,7 +142,7 @@ struct TransactionSnapshot {
  * Members:
  * - Snapshot (TransactionSnapshot*): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct DiagnosticWorkItem {
@@ -154,16 +157,16 @@ struct DiagnosticWorkItem {
     /// <summary>Bounded byte sink used while composing one Event diagnostic record.</summary>
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(System::IO::IByteOutput) [0 bytes dynamic allocation]
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
  * Members:
- * - _buffer (RenderBuffer): sizeof(RenderBuffer) [0 bytes dynamic allocation]
+ * - _buffer (RenderBuffer): 24 bytes [_value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
  * - _maximumBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - _writer (ByteOutputTextWriter): sizeof(System::IO::IByteOutput) + 4 bytes known members [0 bytes dynamic allocation]
+ * - _writer (ByteOutputTextWriter): 8 bytes [0 bytes dynamic allocation]
  * - _truncated (bool): 1 bytes [0 bytes dynamic allocation]
  * - _renderFailed (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(System::IO::IByteOutput) + 6 bytes known members + sizeof(RenderBuffer) + sizeof(System::IO::IByteOutput) + 4 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 44 bytes [_buffer: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class BufferedOutput final : public System::IO::IByteOutput {
