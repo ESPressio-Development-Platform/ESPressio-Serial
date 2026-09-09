@@ -18,7 +18,7 @@
         },
         {
             "name": "ESPressio-Logging",
-            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Logging.git#structural_realignment",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Logging.git#primitives_redesign",
             "platforms": "*"
         }
     ]
