@@ -10,11 +10,11 @@ jobs:
     steps:
       - name: Checkout Serial
         uses: actions/checkout@v4
-      - name: Checkout ESPressio System working branch
+      - name: Checkout ESPressio System primitives redesign branch
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-System
-          ref: structural_realignment
+          ref: primitives_redesign
           path: deps/ESPressio-System
       - name: Checkout ESPressio Logging working branch
         uses: actions/checkout@v4
@@ -82,9 +82,9 @@ jobs:
         with:
           path: project/ESPressio-Serial
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: structural_realignment, path: project/dependencies/ESPressio-System}
+        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: primitives_redesign, path: project/dependencies/ESPressio-System}
       - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: structural_realignment, path: project/dependencies/ESPressio-Task}
+        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: primitives_redesign, path: project/dependencies/ESPressio-Task}
       - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: primitives_redesign, path: project/dependencies/ESPressio-Observable}
       - uses: actions/checkout@v4
