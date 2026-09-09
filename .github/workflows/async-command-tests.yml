@@ -16,11 +16,11 @@ jobs:
           repository: ESPressio-Development-Platform/ESPressio-Command
           ref: primitives_redesign
           path: deps/ESPressio-Command
-      - name: Checkout System working branch
+      - name: Checkout System primitives redesign branch
         uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-System
-          ref: structural_realignment
+          ref: primitives_redesign
           path: deps/ESPressio-System
       - name: Checkout Observable working branch
         uses: actions/checkout@v4
