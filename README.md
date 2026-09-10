@@ -4,9 +4,7 @@ Serial, console and operator-diagnostics components for the ESPressio Developmen
 
 ESPressio Serial is intentionally the **terminal/operator layer** of the ecosystem. It observes and controls other ESPressio subsystems without forcing Serial concerns back into those libraries. Generic logging concepts are owned by `ESPressio-Logging`; this library owns only the concrete Serial Logging Sink.
 
-## Current Version — 0.8.1
-
-0.8.1 is the current released baseline. This feature branch does not change version numbering. It removes the former Serial-owned Logger, logging record types, Sink abstraction and diagnostic ring buffer, and consumes the new `ESPressio-Logging` abstraction instead.
+This working branch removes the former Serial-owned Logger, logging record types, Sink abstraction and diagnostic ring buffer, and consumes the `ESPressio-Logging` abstraction instead.
 
 ## Namespace
 
