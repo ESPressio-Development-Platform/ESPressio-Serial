@@ -125,7 +125,7 @@ void setup() {
     /*
      * Default mode prints one useful record per outbound/inbound Event.
      *
-     * Use Lifecycle to print every Event 5.5 transaction stage:
+     * Use Lifecycle to print every Event transaction stage:
      *
      * monitorConfig.Mode =
      *     ESPressio::Serial::

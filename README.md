@@ -47,7 +47,7 @@ ESPressio::ESP32Platform::ArduinoByteStream consoleIO(::Serial);
 ESPressio::Serial::Console console;
 
 void setup() {
-    ::Serial.begin(115200);
+::Serial.begin(115200);
     console.Initialize(consoleIO);
 }
 ```
@@ -98,8 +98,8 @@ ESPressio::Serial::SerialLogSink serialSink(serialOutput);
 
 void setup() {
     ESPressio::Logging::Logger::GetInstance()
-        .Router()
-        .RegisterSink(&serialSink);
+.Router()
+.RegisterSink(&serialSink);
 
     ESPRESSIO_LOG_INFO(ApplicationCategory, "Boot complete");
 }
@@ -202,11 +202,8 @@ Raw byte transport is generic hardware/runtime I/O and belongs in System. Loggin
 
 # Platform abstraction audit
 
-See [PLATFORM_ABSTRACTIONS.md](PLATFORM_ABSTRACTIONS.md) for the migration record.
 
-# Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for release history and notable changes.
 
 ## License
 

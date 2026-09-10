@@ -52,7 +52,7 @@ void setup() {
                 GetInstance();
 
     /*
-     * Registration places the type in Event 5.6's runtime Serializable
+     * Registration places the type in Event's runtime Serializable
      * Event registry. Existing Event Transport routing rules still apply.
      */
     manager.RegisterBidirectionalEvent<
