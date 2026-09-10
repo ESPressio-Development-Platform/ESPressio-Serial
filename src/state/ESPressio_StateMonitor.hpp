@@ -12,21 +12,7 @@ namespace ESPressio::Serial {
 
 /// <summary>Writes remote-state, subscription, subscriber, publisher, and publication-tracker activity to an Arduino Print sink.</summary>
 /// <remarks>Each State subsystem may be observed independently; Shutdown releases all active observer registrations.</remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(ESPressio::State::IStatePublicationObserver) (target/toolchain dependent) [0 bytes dynamic allocation]
- * Members:
- * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
- * - _remoteStateHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
- * - _subscriptionHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
- * - _subscriberHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
- * - _publisherHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
- * - _publicationHandle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
- * Total Memory: 80 bytes known/aligned storage + sizeof(ESPressio::State::IStatePublicationObserver) (target/toolchain dependent) [_remoteStateHandle: owned object: 4 bytes; _subscriptionHandle: owned object: 4 bytes; _subscriberHandle: owned object: 4 bytes; _publisherHandle: owned object: 4 bytes; _publicationHandle: owned object: 4 bytes]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class StateMonitor final :
     public ESPressio::State::IRemoteStateManagerObserver,
     public ESPressio::State::IStateSubscriptionRegistryObserver,

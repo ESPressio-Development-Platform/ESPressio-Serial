@@ -11,17 +11,7 @@
 namespace ESPressio::Serial {
 
 /// <summary>Writes Socket security-session fault and reset activity to an Arduino Print sink.</summary>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
- * - _handle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
- * Total Memory: 20 bytes [_handle: owned object: 4 bytes]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class SocketSecuritySessionMonitor final :
     public ESPressio::Sockets::ISocketSecuritySessionObserver {
 private:

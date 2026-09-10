@@ -11,17 +11,7 @@
 namespace ESPressio::Serial {
 
 /// <summary>Writes ESP-NOW transport lifecycle, peer, and send activity to an Arduino Print sink.</summary>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(ESPressio::ESPNow::IESPNowTransportObserver) (target/toolchain dependent) [0 bytes dynamic allocation]
- * Members:
- * - _output (Print*): 4 bytes [0 bytes dynamic allocation]
- * - _handle (ESPressio::Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
- * Total Memory: 20 bytes known/aligned storage + sizeof(ESPressio::ESPNow::IESPNowTransportObserver) (target/toolchain dependent) [_handle: owned object: 4 bytes]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class ESPNowTransportMonitor final :
     public ESPressio::ESPNow::IESPNowTransportObserver {
 private:

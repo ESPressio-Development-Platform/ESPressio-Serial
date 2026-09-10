@@ -4,34 +4,14 @@
 
 using namespace ESPressio;
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - text (std::string): 24 bytes [Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Total Memory: 28 bytes [text: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class BufferPrint final : public Print {
 public:
     std::size_t write(uint8_t value) override { text.push_back(static_cast<char>(value)); return 1; }
     std::string text;
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - state (WiFi::WiFiRuntimeState): 168 bytes [Client: SSID: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Client: Selection: SelectedSSID: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; AccessPoint: SSID: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * - scanReady (bool): 1 bytes [0 bytes dynamic allocation]
- * - pending (WiFi::WiFiVector<WiFi::WiFiPlatformEvent>): 16 bytes [Capacity * (14 bytes) element storage]
- * Total Memory: 192 bytes [state: Client: SSID: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; state: Client: Selection: SelectedSSID: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; state: AccessPoint: SSID: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO; pending: Capacity * (14 bytes) element storage]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class FakePlatform final : public WiFi::IWiFiPlatform {
 public:
     WiFi::WiFiStatus Apply(const WiFi::WiFiConfiguration& config) override { state.Mode=config.Mode; state.AccessPoint.SSID=config.AccessPoint.SSID; state.Revision++; return WiFi::WiFiStatus::Success; }

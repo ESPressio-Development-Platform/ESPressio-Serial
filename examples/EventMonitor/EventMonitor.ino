@@ -5,17 +5,7 @@
 #include <ESPressio_EventMonitor.hpp>
 
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Counter (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - Source (String): 12 bytes [Capacity + 1 bytes backing buffer when allocated]
- * Total Memory: 40 bytes [Source: Capacity + 1 bytes backing buffer when allocated]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class MonitoredCounterEvent final :
     public ESPressio::Event::
         SerializableEvent<
@@ -56,15 +46,7 @@ ESPRESSIO_EVENT_TRANSPORT_TYPE(
  * outbound and inbound Event Transport monitoring without requiring
  * additional hardware or a network connection.
  */
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _receiver (ESPressio::Event::IEventTransportReceiver*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class LoopbackEventTransport final :
     public ESPressio::Event::
         IEventTransport {

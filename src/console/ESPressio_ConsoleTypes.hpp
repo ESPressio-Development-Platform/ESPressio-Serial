@@ -10,13 +10,7 @@
 namespace ESPressio::Serial {
 
 /// <summary>Outcome from parsing and executing one console input line.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class ConsoleExecutionResult : uint8_t {
     Executed,
@@ -26,18 +20,7 @@ class ConsoleExecutionResult : uint8_t {
 };
 
 /// <summary>Configures console line buffering, input echo, and prompt presentation.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - MaximumLineLength (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - EchoInput (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowPrompt (bool): 1 bytes [0 bytes dynamic allocation]
- * - Prompt (System::Memory::String<System::Memory::MemoryPolicy::ExternalPreferred>): 24 bytes [_value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Total Memory: 32 bytes [Prompt: _value: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct ConsoleConfig {
     /// <summary>Maximum accepted input line length before characters are discarded until newline.</summary>
     std::size_t MaximumLineLength = 2048;
@@ -50,15 +33,7 @@ struct ConsoleConfig {
 };
 
 /// <summary>Non-owning command and argument views supplied to a registered console command handler.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Command (std::string_view): 8 bytes [0 bytes dynamic allocation]
- * - Arguments (std::string_view): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct ConsoleCommandContext {
     std::string_view Command;
     std::string_view Arguments;

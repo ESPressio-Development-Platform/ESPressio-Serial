@@ -9,13 +9,7 @@
 namespace ESPressio::Serial {
 
 /// <summary>Controls which registered serializable Event types may be constructed and dispatched interactively.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class EventConsoleAccessPolicy : uint8_t {
     AllowListedOnly,
@@ -23,23 +17,7 @@ class EventConsoleAccessPolicy : uint8_t {
 };
 
 /// <summary>Configures EventConsole access control, dispatch confirmation, schema visibility, and JSON deserialization limits.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - AccessPolicy (EventConsoleAccessPolicy): 1 bytes [0 bytes dynamic allocation]
- * - RequireConfirmation (bool): 1 bytes [0 bytes dynamic allocation]
- * - AllowQueue (bool): 1 bytes [0 bytes dynamic allocation]
- * - AllowStack (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowDeniedEventsInList (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowAliases (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowSensitivePropertyMetadata (bool): 1 bytes [0 bytes dynamic allocation]
- * - DefaultPriority (Event::EventPriority): 4 bytes [0 bytes dynamic allocation]
- * - DeserializationOptions (Serializable::DeserializationOptions): 8 bytes [0 bytes dynamic allocation]
- * - MaximumJsonLength (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 24 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct EventConsoleConfig {
     /// <summary>Policy used to decide whether a registered Event type is operator-accessible.</summary>
     EventConsoleAccessPolicy AccessPolicy =

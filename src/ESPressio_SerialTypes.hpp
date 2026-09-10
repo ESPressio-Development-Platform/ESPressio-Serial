@@ -6,13 +6,7 @@
 namespace ESPressio::Serial {
 
 /// <summary>Selects whether Event monitoring reports event traffic or event lifecycle activity.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class EventMonitorMode : uint8_t {
     /// <summary>Report dispatched/transported events.</summary>
@@ -22,13 +16,7 @@ class EventMonitorMode : uint8_t {
 };
 
 /// <summary>Selects how an Event monitor renders event payload content.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class EventMonitorPayloadFormat : uint8_t {
     /// <summary>Do not render payload content.</summary>
@@ -42,35 +30,7 @@ class EventMonitorPayloadFormat : uint8_t {
 };
 
 /// <summary>Controls Event monitor direction, metadata, payload formatting, and output bounds.</summary>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Mode (EventMonitorMode): 1 bytes [0 bytes dynamic allocation]
- * - PayloadFormat (EventMonitorPayloadFormat): 1 bytes [0 bytes dynamic allocation]
- * - ShowInbound (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowOutbound (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowFailures (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowStableTypeName (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowTypeID (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowSchemaVersion (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowMessageID (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowTransportAddress (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowDispatchMetadata (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowOrigin (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowHopCount (bool): 1 bytes [0 bytes dynamic allocation]
- * - ShowTransportAccepted (bool): 1 bytes [0 bytes dynamic allocation]
- * - PrettyStructuredPayload (bool): 1 bytes [0 bytes dynamic allocation]
- * - MaximumRenderedBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - MaximumHexPayloadBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - MaximumCollectionItems (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - MaximumStringLength (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - MaximumStructuredNodes (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - MaximumStructuredDepth (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - IndentSpaces (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct EventMonitorConfig {
     /// <summary>Activity category reported by the monitor.</summary>
     EventMonitorMode Mode =

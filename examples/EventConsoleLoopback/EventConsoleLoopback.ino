@@ -7,17 +7,7 @@
 #include <ESPressio_EventConsole.hpp>
 #include <ESPressio_EventMonitor.hpp>
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Command (String): 12 bytes [Capacity + 1 bytes backing buffer when allocated]
- * - Value (int32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [Command: Capacity + 1 bytes backing buffer when allocated]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class RemoteCommandEvent final :
     public ESPressio::Event::
         SerializableEvent<
@@ -51,15 +41,7 @@ ESPRESSIO_EVENT_TRANSPORT_TYPE(
     "flowduino.example.serial.remote-command.v1"
 )
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _receiver (ESPressio::Event::IEventTransportReceiver*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class LoopbackTransport final :
     public ESPressio::Event::
         IEventTransport {
