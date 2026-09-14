@@ -5,25 +5,26 @@
 /*
  * Optional facilities are selected explicitly.
  *
- * Logging Sink:
- *   ESPressio_SerialLogging.hpp            -> ESPressio-Logging + SerialLogSink
+ * Logging sink:
+ *   ESPressio_SerialLogging.hpp                 -> ESPressio-Logging
  *
- * Logging / diagnostic monitors:
- *   ESPressio_SystemClockMonitor.hpp
- *   ESPressio_ThreadMonitor.hpp
- *   ESPressio_EventMonitor.hpp
+ * Final diagnostics:
+ *   ESPressio_SystemClockMonitor.hpp            -> Timing observer
+ *   ESPressio_ThreadMonitor.hpp                 -> caller-owned IThread snapshot
+ *   ESPressio_EventMonitor.hpp                  -> Event descriptors
+ *   ESPressio_CommandMonitor.hpp                -> Command descriptors
+ *   ESPressio_StateMonitor.hpp                  -> State descriptors/read-only dynamic read
+ *   ESPressio_SecurityMonitor.hpp               -> Security
+ *   ESPressio_SocketAdapterTransportMonitor.hpp -> Sockets final A2 transport snapshot
+ *   ESPressio_SocketSecuritySessionMonitor.hpp  -> Sockets/Security session observer
+ *   ESPressio_ESPNowRadioMonitor.hpp            -> ESP-NOW final Radio provider snapshot
+ *   ESPressio_WiFiMonitor.hpp                   -> WiFi runtime observer/state
  *   ESPressio_DiagnosticMonitor.hpp
- *
- * Observable subsystem monitors:
- *   ESPressio_CommandMonitor.hpp          -> Command
- *   ESPressio_SecurityMonitor.hpp         -> Security
- *   ESPressio_SocketWorkerMonitor.hpp     -> Sockets
- *   ESPressio_SocketSecuritySessionMonitor.hpp
- *   ESPressio_ESPNowTransportMonitor.hpp  -> ESP-Now
- *   ESPressio_WiFiMonitor.hpp             -> WiFi
- *   ESPressio_StateMonitor.hpp            -> State, optional and header-selected
  *
  * Interactive integrations:
  *   ESPressio_CommandConsole.hpp
  *   ESPressio_EventConsole.hpp
+ *
+ * Serial intentionally provides no ThreadManager, ESPNowTransport, SocketWorker,
+ * WiFi EventThread, Primitive transport, retry, scheduler, or registry compatibility layer.
  */
