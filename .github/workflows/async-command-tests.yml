@@ -1,59 +1,63 @@
-name: Async Command Console Tests
+name: Command Console Final Contract
 
 on:
   push:
+    branches: [primitives_redesign]
   pull_request:
 
-jobs:
-  host-async-command-console:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Serial
-        uses: actions/checkout@v4
-      - name: Checkout asynchronous Command branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Command
-          ref: primitives_redesign
-          path: deps/ESPressio-Command
-      - name: Checkout System primitives redesign branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-System
-          ref: primitives_redesign
-          path: deps/ESPressio-System
-      - name: Checkout Observable working branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: primitives_redesign
-          path: deps/ESPressio-Observable
-      - name: Compile asynchronous CommandConsole regression
-        run: >-
-          g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror
-          -Itests/stubs
-          -Isrc
-          -Ideps/ESPressio-Command/src
-          -Ideps/ESPressio-System/src
-          -Ideps/ESPressio-Observable/src
-          tests/test_command_console.cpp
-          -o test_command_console_async
-      - name: Run asynchronous CommandConsole regression
-        run: ./test_command_console_async
+permissions:
+  contents: read
 
-  source-guards:
+jobs:
+  command-console:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Guard asynchronous transport-style ingress
+        with: {path: ESPressio-Serial}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: primitives_redesign, path: deps/ESPressio-System}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Primitive, ref: primitives_redesign, path: deps/ESPressio-Primitive}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Command, ref: primitives_redesign, path: deps/ESPressio-Command}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: primitives_redesign, path: deps/ESPressio-Task}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: primitives_redesign, path: deps/ESPressio-Timing}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: primitives_redesign, path: deps/ESPressio-Units}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: primitives_redesign, path: deps/ESPressio-Observable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: primitives_redesign, path: deps/ESPressio-Serializable}
+
+      - name: Reject predecessor Command console APIs
         shell: bash
         run: |
-          grep -q 'InboundCommandEvent' src/command-console/ESPressio_CommandConsole.hpp
-          grep -q 'CommandResponseRouteRegistry' src/command-console/ESPressio_CommandConsole.hpp
-          grep -q 'CommandRequestEnvelope' src/command-console/ESPressio_CommandConsole.hpp
-          grep -q 'CommandResult Execute' src/command-console/ESPressio_CommandConsole.hpp
-          HANDLE_LINE_BODY="$(sed -n '/bool HandleLine(std::string_view line)/,/^    }/p' src/command-console/ESPressio_CommandConsole.hpp)"
-          if grep -q '_registry->Invoke' <<<"${HANDLE_LINE_BODY}"; then
-            echo 'Serial interceptor regressed to synchronous Command execution.' >&2
+          files=(
+            ESPressio-Serial/src/command-console/ESPressio_CommandConsole.hpp
+            ESPressio-Serial/tests/test_command_console.cpp
+          )
+          if grep -nE 'CommandRegistry|CommandRequestEnvelope|InboundCommandEvent|CommandResponseRouteRegistry|TextCommandParser' "${files[@]}"; then
+            echo 'Command console regression still references predecessor Command/Event routing architecture.' >&2
             exit 1
           fi
+          grep -q 'SubmitDynamicCommand' ESPressio-Serial/src/command-console/ESPressio_CommandConsole.hpp
+          grep -q 'RequesterRequired' ESPressio-Serial/src/command-console/ESPressio_CommandConsole.hpp
+          grep -q 'ICommandConsoleAuthorizer' ESPressio-Serial/src/command-console/ESPressio_CommandConsole.hpp
+
+      - name: Compile final Command console regression
+        shell: bash
+        run: |
+          includes=(-I ESPressio-Serial/src)
+          for dep in System Primitive Command Task Timing Units Observable Serializable; do
+            includes+=( -I "deps/ESPressio-${dep}/src" )
+          done
+          includes+=( -I deps/ESPressio-Timing/tests/stubs -I deps/ESPressio-Task/tests )
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -fno-rtti -UNDEBUG \
+            "${includes[@]}" \
+            ESPressio-Serial/tests/test_command_console.cpp \
+            -pthread -o command-console-test
+
+      - name: Run final Command console regression
+        run: ./command-console-test
