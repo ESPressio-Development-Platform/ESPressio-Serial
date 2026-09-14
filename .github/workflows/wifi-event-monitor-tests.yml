@@ -24,6 +24,7 @@ jobs:
           test ! -e src/sockets/ESPressio_SocketWorkerMonitor.hpp
           test ! -e src/event/ESPressio_EventMonitorFormatter.hpp
           test ! -e src/event/ESPressio_EventMonitorPayloadSafety.hpp
+          test ! -e src/ESPressio_SerialTypes.hpp
           grep -q 'ESPressio_IThread.hpp' src/threads/ESPressio_ThreadMonitor.hpp
           grep -q 'GetDiagnostics' src/threads/ESPressio_ThreadMonitor.hpp
           grep -q 'TimeReliability' src/timing/ESPressio_SystemClockMonitor.hpp
@@ -48,6 +49,10 @@ jobs:
           if grep -E '#[[:space:]]*include.*(ESPressio_TypeDirectory|ESPressio_EventTypeDescriptor|ESPressio_CommandDescriptor)|Primitive::TypeDirectory|EventMonitor[[:space:]]+_|CommandMonitor[[:space:]]+_' \
               src/diagnostics/ESPressio_DiagnosticMonitor.hpp; then
             echo 'D10-13 DiagnosticMonitor must not aggregate the independent D10-12 family-tooling output domain.' >&2
+            exit 1
+          fi
+          if grep -R -E 'EventMonitorMode|EventMonitorPayloadFormat|EventMonitorConfig|ShowTransportAddress|ShowHopCount|ShowTransportAccepted' src --exclude-dir=.git; then
+            echo 'Predecessor Event-transport monitoring configuration resurfaced in Serial production source.' >&2
             exit 1
           fi
 
