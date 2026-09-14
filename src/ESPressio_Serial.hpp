@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ESPressio_SerialTypes.hpp"
-
 /*
  * Optional facilities are selected explicitly.
  *
@@ -26,5 +24,6 @@
  *   ESPressio_EventConsole.hpp
  *
  * Serial intentionally provides no ThreadManager, ESPNowTransport, SocketWorker,
- * WiFi EventThread, Primitive transport, retry, scheduler, or registry compatibility layer.
+ * WiFi EventThread, Primitive transport, retry, scheduler, registry compatibility layer,
+ * or predecessor Event-transport monitoring configuration surface.
  */
