@@ -1,52 +1,61 @@
 #pragma once
+
 #include <Arduino.h>
+#include <string_view>
 
 #if __has_include(<ESPressio_Timing.hpp>)
 #include "../timing/ESPressio_SystemClockMonitor.hpp"
 #define ESPRESSIO_SERIAL_HAS_TIMING_MONITOR 1
 #endif
 
-#if __has_include(<ESPressio_ThreadManager.hpp>)
+#if __has_include(<ESPressio_IThread.hpp>)
 #include "../threads/ESPressio_ThreadMonitor.hpp"
 #define ESPRESSIO_SERIAL_HAS_THREAD_MONITOR 1
 #endif
 
-#if __has_include(<ESPressio_EventTransport.hpp>) && __has_include(<ESPressio_BinaryArchive.hpp>)
+#if __has_include(<ESPressio_TypeDirectory.hpp>)
+#include <ESPressio_TypeDirectory.hpp>
+#define ESPRESSIO_SERIAL_HAS_PRIMITIVE_DIRECTORY 1
+#endif
+
+#if defined(ESPRESSIO_SERIAL_HAS_PRIMITIVE_DIRECTORY) && __has_include(<ESPressio_EventTypeDescriptor.hpp>)
 #include "../event/ESPressio_EventMonitor.hpp"
 #define ESPRESSIO_SERIAL_HAS_EVENT_MONITOR 1
 #endif
 
-#if __has_include(<ESPressio_Command.hpp>) && __has_include(<ESPressio_ICommandRegistryObserver.hpp>)
+#if defined(ESPRESSIO_SERIAL_HAS_PRIMITIVE_DIRECTORY) && __has_include(<ESPressio_CommandDescriptor.hpp>)
 #include "../command/ESPressio_CommandMonitor.hpp"
 #define ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR 1
 #endif
 
-#if __has_include(<ESPressio_ESPNowTransport.hpp>) && __has_include(<ESPressio_IESPNowTransportObserver.hpp>)
-#include "../espnow/ESPressio_ESPNowTransportMonitor.hpp"
+#if defined(ARDUINO_ARCH_ESP32) && __has_include(<ESPressio_ESPNowRadio.hpp>)
+#include "../espnow/ESPressio_ESPNowRadioMonitor.hpp"
 #define ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR 1
 #endif
 
 namespace ESPressio::Serial {
 
-/// <summary>Selects which available subsystem monitors are aggregated by DiagnosticMonitor.</summary>
-
-struct DiagnosticMonitorConfig {
-    /// <summary>Enable System Clock diagnostics when Timing support is available.</summary>
+/// Selects the final diagnostic seams aggregated by DiagnosticMonitor.
+/// Event/Command descriptor diagnostics are disabled by default because they
+/// require the application to provide its frozen Primitive TypeDirectory.
+struct DiagnosticMonitorConfig final {
     bool SystemClock = true;
-    /// <summary>Enable thread diagnostics when Threads support is available.</summary>
     bool Threads = true;
-    /// <summary>Enable Event diagnostics when Event transport support is available.</summary>
-    bool Events = true;
-    /// <summary>Enable Command diagnostics when Command observer support is available.</summary>
+    bool Events = false;
     bool Commands = false;
-    /// <summary>Enable ESP-NOW diagnostics when ESP-NOW observer support is available.</summary>
     bool ESPNow = false;
 };
 
-/// <summary>Aggregates the optional subsystem monitors compiled into ESPressio-Serial behind one lifecycle.</summary>
-/// <remarks>A requested subsystem that is not available at compile time causes Initialize to report failure while still initializing the other requested monitors.</remarks>
-
+/// Aggregates final ESPressio diagnostic renderers without acquiring provider ownership.
+///
+/// Timing observation attaches only to the caller-selected SystemClock. Thread and ESP-NOW
+/// diagnostics remain point-in-time reads of caller-owned instances. Event/Command discovery
+/// borrows one frozen Primitive TypeDirectory. No registry, transport, retry path, scheduler,
+/// worker, event listener topology, or provider lifecycle is owned here.
 class DiagnosticMonitor final {
+private:
+    bool _initialized = false;
+
 #ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR
     SystemClockMonitor<> _systemClock;
 #endif
@@ -60,14 +69,10 @@ class DiagnosticMonitor final {
     CommandMonitor _commands;
 #endif
 #ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR
-    ESPNowTransportMonitor _espNow;
+    ESPNowRadioMonitor _espNow;
 #endif
-public:
-    /// <summary>Initializes the selected diagnostic monitors against a shared Arduino Print sink.</summary>
-    /// <param name="output">Destination used by all enabled monitors.</param>
-    /// <param name="config">Subsystems to enable.</param>
-    /// <returns>True only when every requested monitor is available and initializes successfully.</returns>
-    bool Initialize(Print& output, const DiagnosticMonitorConfig& config = {}) {
+
+    bool InitializeNonFamily(Print& output, const DiagnosticMonitorConfig& config) {
         bool success = true;
 #ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR
         if (config.SystemClock) success = _systemClock.Initialize(output) && success;
@@ -79,16 +84,6 @@ public:
 #else
         if (config.Threads) success = false;
 #endif
-#ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR
-        if (config.Events) success = _events.Initialize(output) && success;
-#else
-        if (config.Events) success = false;
-#endif
-#ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR
-        if (config.Commands) success = _commands.Initialize(output) && success;
-#else
-        if (config.Commands) success = false;
-#endif
 #ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR
         if (config.ESPNow) success = _espNow.Initialize(output) && success;
 #else
@@ -97,16 +92,59 @@ public:
         return success;
     }
 
-    /// <summary>Shuts down every compiled monitor in reverse initialization dependency order.</summary>
-    void Shutdown() {
-#ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR
-        _espNow.Shutdown();
+public:
+    DiagnosticMonitor() = default;
+    DiagnosticMonitor(const DiagnosticMonitor&) = delete;
+    DiagnosticMonitor& operator=(const DiagnosticMonitor&) = delete;
+    ~DiagnosticMonitor() { Shutdown(); }
+
+    /// Initializes diagnostics that do not require Primitive TypeDirectory discovery.
+    /// Requesting Event/Command diagnostics through this overload fails closed.
+    bool Initialize(Print& output, const DiagnosticMonitorConfig& config = {}) {
+        Shutdown();
+        bool success = InitializeNonFamily(output, config);
+        if (config.Events || config.Commands) success = false;
+        _initialized = success;
+        if (!success) Shutdown();
+        return success;
+    }
+
+#ifdef ESPRESSIO_SERIAL_HAS_PRIMITIVE_DIRECTORY
+    /// Initializes final diagnostics and borrows the application's frozen Primitive TypeDirectory.
+    bool Initialize(
+        Print& output,
+        Primitive::TypeDirectoryView types,
+        const DiagnosticMonitorConfig& config = {}
+    ) {
+        Shutdown();
+        if ((config.Events || config.Commands) && !types.IsFrozen()) return false;
+
+        bool success = InitializeNonFamily(output, config);
+#ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR
+        if (config.Events) success = _events.Initialize(types, output) && success;
+#else
+        if (config.Events) success = false;
 #endif
+#ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR
+        if (config.Commands) success = _commands.Initialize(types, output) && success;
+#else
+        if (config.Commands) success = false;
+#endif
+        _initialized = success;
+        if (!success) Shutdown();
+        return success;
+    }
+#endif
+
+    void Shutdown() noexcept {
 #ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR
         _commands.Shutdown();
 #endif
 #ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR
         _events.Shutdown();
+#endif
+#ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR
+        _espNow.Shutdown();
 #endif
 #ifdef ESPRESSIO_SERIAL_HAS_THREAD_MONITOR
         _threads.Shutdown();
@@ -114,6 +152,40 @@ public:
 #ifdef ESPRESSIO_SERIAL_HAS_TIMING_MONITOR
         _systemClock.Shutdown();
 #endif
+        _initialized = false;
     }
+
+    bool IsInitialized() const noexcept { return _initialized; }
+
+#ifdef ESPRESSIO_SERIAL_HAS_THREAD_MONITOR
+    bool PrintThreadStatus(const Threads::IThread& thread, const char* name = nullptr) {
+        return _initialized && _threads.PrintStatus(thread, name);
+    }
+#endif
+
+#ifdef ESPRESSIO_SERIAL_HAS_EVENT_MONITOR
+    void ListEventTypes() const noexcept {
+        if (_initialized) _events.List();
+    }
+    bool DescribeEventType(std::string_view canonicalName) const noexcept {
+        return _initialized && _events.Describe(canonicalName);
+    }
+#endif
+
+#ifdef ESPRESSIO_SERIAL_HAS_COMMAND_MONITOR
+    void ListCommandTypes() const noexcept {
+        if (_initialized) _commands.List();
+    }
+    bool DescribeCommandType(std::string_view canonicalName) const noexcept {
+        return _initialized && _commands.Describe(canonicalName);
+    }
+#endif
+
+#ifdef ESPRESSIO_SERIAL_HAS_ESPNOW_MONITOR
+    bool PrintESPNowStatus(const ESPNow::ESPNowRadio& radio) {
+        return _initialized && _espNow.PrintStatus(radio);
+    }
+#endif
 };
-}
+
+} // namespace ESPressio::Serial
