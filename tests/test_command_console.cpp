@@ -1,139 +1,153 @@
 #include <cassert>
+#include <cstdint>
 #include <string>
+#include <string_view>
 
 #include <ESPressio_CommandConsole.hpp>
-#include <ESPressio_CommandEvents.hpp>
-#include <ESPressio_CommandResponseRoute.hpp>
+#include <ESPressio_CommandDescriptor.hpp>
+#include <ESPressio_TypeDirectory.hpp>
 
+using namespace ESPressio;
 
-class TestStream final : public ESPressio::System::IO::IByteStream {
+namespace {
+
+class TestStream final : public System::IO::IByteStream {
 public:
     std::string Output;
-
     std::size_t Available() const noexcept override { return 0; }
-
-    ESPressio::System::PlatformResult Read(uint8_t&) noexcept override {
-        return ESPressio::System::PlatformResult::Failed(
-            ESPressio::System::PlatformStatus::Unavailable
-        );
+    System::PlatformResult Read(std::uint8_t&) noexcept override {
+        return System::PlatformResult::Failed(System::PlatformStatus::Unavailable);
     }
-
-    ESPressio::System::PlatformResult Write(
-        const uint8_t* data,
-        std::size_t size,
-        std::size_t& bytesWritten
-    ) noexcept override {
+    System::PlatformResult Write(const std::uint8_t* data, std::size_t size, std::size_t& bytesWritten) noexcept override {
         bytesWritten = 0;
-        if (data == nullptr && size != 0) {
-            return ESPressio::System::PlatformResult::Failed(
-                ESPressio::System::PlatformStatus::InvalidArgument
-            );
-        }
+        if (data == nullptr && size != 0) return System::PlatformResult::Failed(System::PlatformStatus::InvalidArgument);
         try {
-            if (size != 0) {
-                Output.append(reinterpret_cast<const char*>(data), size);
-            }
+            if (size != 0) Output.append(reinterpret_cast<const char*>(data), size);
             bytesWritten = size;
-            return ESPressio::System::PlatformResult::Succeeded();
+            return System::PlatformResult::Succeeded();
         } catch (...) {
-            return ESPressio::System::PlatformResult::Failed(
-                ESPressio::System::PlatformStatus::OutOfMemory
-            );
+            return System::PlatformResult::Failed(System::PlatformStatus::OutOfMemory);
         }
+    }
+    void Clear() { Output.clear(); }
+};
+
+std::uint32_t Submissions = 0;
+
+Command::CommandSubmissionResult SubmitCommand(Command::CommandPayloadFormat format, const std::uint8_t* payload, std::size_t size) noexcept {
+    assert(format == Command::CommandPayloadFormat::JSON);
+    assert(std::string_view(reinterpret_cast<const char*>(payload), size) == R"({"value":7})");
+    ++Submissions;
+    return {Command::CommandSubmissionStatus::Accepted, Command::CommandId{1}};
+}
+
+const Serializable::StaticSchemaDescriptor& TestSchema() {
+    static const Serializable::StaticSchemaDescriptor schema = [] {
+        Serializable::StaticSchemaDescriptor value{};
+        value.CurrentVersion = 1;
+        value.MinimumReadableVersion = 1;
+        value.MaximumReadableVersion = 1;
+        value.MaximumDirectBinaryBytes = 16;
+        value.MaximumCborBytes = 24;
+        value.MaximumJsonBytes = 32;
+        return value;
+    }();
+    return schema;
+}
+
+Primitive::PrimitiveTypeDescriptor FireAndForgetDescriptor() {
+    static Command::CommandTypeDescriptor extension{};
+    extension.TypeId = Command::CommandTypeId{0xA101};
+    extension.Tier = Command::CommandTier::Serializable;
+    extension.MaximumLiveInstances = 2;
+    extension.MaximumPendingExecutions = 1;
+    extension.ExecutionLaneCount = 1;
+    extension.RequestSchema = &TestSchema();
+    extension.DynamicConstruction = Command::CommandDynamicConstructionMode::FireAndForget;
+    extension.SubmitSerialized = &SubmitCommand;
+    return {{Command::CommandFamilyId, extension.TypeId.Value()}, "Test.Serial.Command", Primitive::PrimitiveTypeCapabilities{1}, {1,1}, {}, {64}, {&extension}};
+}
+
+Primitive::PrimitiveTypeDescriptor RequesterRequiredDescriptor() {
+    static Command::CommandTypeDescriptor extension{};
+    extension.TypeId = Command::CommandTypeId{0xA102};
+    extension.Tier = Command::CommandTier::Serializable;
+    extension.RequestSchema = &TestSchema();
+    extension.DynamicConstruction = Command::CommandDynamicConstructionMode::RequesterRequired;
+    return {{Command::CommandFamilyId, extension.TypeId.Value()}, "Test.Serial.RequestCommand", Primitive::PrimitiveTypeCapabilities{1}, {1,1}, {}, {64}, {&extension}};
+}
+
+class Authorizer final : public Serial::ICommandConsoleAuthorizer {
+public:
+    bool Allowed = true;
+    mutable std::uint32_t Calls = 0;
+    Serial::CommandConsoleAuthorizationDecision Authorize(const Primitive::PrimitiveTypeDescriptor&) const noexcept override {
+        ++Calls;
+        return Allowed ? Serial::CommandConsoleAuthorizationDecision::Authorized : Serial::CommandConsoleAuthorizationDecision::Denied;
     }
 };
 
+} // namespace
+
 int main() {
-    using namespace ESPressio;
+    Primitive::TypeDirectory<2> directory;
+    assert(directory.Register(FireAndForgetDescriptor()) == Primitive::TypeDirectoryRegistrationStatus::Success);
+    assert(directory.Register(RequesterRequiredDescriptor()) == Primitive::TypeDirectoryRegistrationStatus::Success);
+    assert(directory.Initialize() == Primitive::TypeDirectoryInitializationStatus::Success);
 
     TestStream stream;
     Serial::Console console;
     Serial::ConsoleConfig config;
     config.ShowPrompt = false;
+    config.MaximumLineLength = 256;
     assert(console.Initialize(stream, stream, config));
 
     bool legacyCalled = false;
-    assert(console.RegisterCommand(
-        "legacy",
-        "Legacy command",
-        [&](const Serial::ConsoleCommandContext&) { legacyCalled = true; }
-    ));
+    assert(console.RegisterCommand("legacy", "unrelated Console command", [&](const Serial::ConsoleCommandContext&) { legacyCalled = true; }));
 
-    int pingExecutions = 0;
-    Command::CommandRegistry registry;
-    auto& ping = registry.Command("ping");
-    ping.OnExecute([&](const Command::CommandContext&) {
-        ++pingExecutions;
-        return Command::CommandResult::Ok("pong");
-    });
-
+    Authorizer authorizer;
     Serial::CommandConsole commandConsole;
-    assert(commandConsole.Initialize(console, registry));
+    assert(commandConsole.Initialize(console, directory.View(), authorizer));
+    assert(commandConsole.GetIsInitialized());
 
-    bool envelopeQueued = false;
-    Command::CommandRequestEnvelope captured;
-    Event::InboundCommandEvent::OnQueue =
-        [&](const Command::CommandRequestEnvelope& envelope) {
-            envelopeQueued = true;
-            captured = envelope;
-        };
+    assert(console.ExecuteLine("commands") == Serial::ConsoleExecutionResult::Executed);
+    assert(stream.Output.find("Test.Serial.Command") != std::string::npos);
+    assert(stream.Output.find("Test.Serial.RequestCommand") != std::string::npos);
 
-    // Transport-style serial ingress is accepted synchronously but application
-    // Command execution is deferred through an InboundCommandEvent envelope.
-    assert(console.ExecuteLine("ping") == Serial::ConsoleExecutionResult::Executed);
-    assert(envelopeQueued);
-    assert(captured.RequestId != 0);
-    assert(captured.Origin.TransportRoute != 0);
-    assert(captured.RawString() == "ping");
-    assert(pingExecutions == 0);
-    assert(stream.Output.find("pong") == std::string::npos);
+    stream.Clear();
+    assert(console.ExecuteLine("command describe Test.Serial.Command") == Serial::ConsoleExecutionResult::Executed);
+    assert(stream.Output.find("FireAndForget") != std::string::npos);
+    assert(stream.Output.find("JSON request bytes: 32") != std::string::npos);
 
-    // Completion can happen after the serial interceptor stack has unwound and
-    // is routed back through the stored lifetime-safe response route.
-    Command::CommandResponseEnvelope response;
-    response.RequestId = captured.RequestId;
-    response.Success = true;
-    response.Code = 0;
-    assert(response.SetMessage("pong"));
-    assert(Command::CommandResponseRouteRegistry::GetInstance().Route(
-        captured.Origin,
-        response
-    ));
-    assert(stream.Output.find("pong") != std::string::npos);
-    assert(pingExecutions == 0);
+    stream.Clear();
+    assert(console.ExecuteLine(R"(command json Test.Serial.Command {"value":7})") == Serial::ConsoleExecutionResult::Executed);
+    assert(Submissions == 1);
+    assert(stream.Output.find("Command submission: Accepted") != std::string::npos);
 
-    // Explicit programmatic Execute remains the local/direct synchronous path.
-    stream.Output.clear();
-    const auto direct = commandConsole.Execute("ping");
-    assert(direct.success);
-    assert(direct.message == "pong");
-    assert(pingExecutions == 1);
+    stream.Clear();
+    assert(console.ExecuteLine(R"(command json Test.Serial.RequestCommand {"value":7})") == Serial::ConsoleExecutionResult::Executed);
+    assert(Submissions == 1);
+    assert(stream.Output.find("requester capability") != std::string::npos);
 
-    // Interceptor chaining remains intact for legacy Console commands.
-    stream.Output.clear();
+    authorizer.Allowed = false;
+    stream.Clear();
+    assert(console.ExecuteLine(R"(command json Test.Serial.Command {"value":7})") == Serial::ConsoleExecutionResult::Executed);
+    assert(Submissions == 1);
+    assert(stream.Output.find("not authorized") != std::string::npos);
+    authorizer.Allowed = true;
+
+    stream.Clear();
+    assert(console.ExecuteLine("command json Test.Serial.Command 123456789012345678901234567890123") == Serial::ConsoleExecutionResult::Executed);
+    assert(Submissions == 1);
+    assert(stream.Output.find("exceeds bounded schema capacity") != std::string::npos);
+
+    stream.Clear();
     assert(console.ExecuteLine("legacy") == Serial::ConsoleExecutionResult::Executed);
     assert(legacyCalled);
 
-    auto registration = registry.RegisterCommand("temporary");
-    assert(registration.Active());
-    registry.Command("temporary").OnExecute([](const Command::CommandContext&) {
-        return Command::CommandResult::Ok("temporary result");
-    });
-    registration.Reset();
-    stream.Output.clear();
-    console.ExecuteLine("temporary");
-    assert(stream.Output.find("Unknown command") != std::string::npos);
-
-    // After shutdown the response route is unavailable rather than retaining a
-    // dangling CommandConsole pointer.
-    const auto oldOrigin = captured.Origin;
     commandConsole.Shutdown();
     assert(!commandConsole.GetIsInitialized());
-    assert(!Command::CommandResponseRouteRegistry::GetInstance().Route(
-        oldOrigin,
-        response
-    ));
-
-    Event::InboundCommandEvent::OnQueue = {};
+    stream.Clear();
+    assert(console.ExecuteLine("command describe Test.Serial.Command") == Serial::ConsoleExecutionResult::UnknownCommand);
     return 0;
 }
