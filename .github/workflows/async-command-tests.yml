@@ -30,6 +30,10 @@ jobs:
         with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: primitives_redesign, path: deps/ESPressio-Observable}
       - uses: actions/checkout@v4
         with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: primitives_redesign, path: deps/ESPressio-Serializable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Persistence, ref: primitives_redesign, path: deps/ESPressio-Persistence}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Security, ref: primitives_redesign, path: deps/ESPressio-Security}
 
       - name: Reject predecessor Command console APIs
         shell: bash
@@ -50,7 +54,7 @@ jobs:
         shell: bash
         run: |
           includes=(-I ESPressio-Serial/src)
-          for dep in System Primitive Command Task Timing Units Observable Serializable; do
+          for dep in System Primitive Command Task Timing Units Observable Serializable Persistence Security; do
             includes+=( -I "deps/ESPressio-${dep}/src" )
           done
           includes+=( -I deps/ESPressio-Timing/tests/stubs -I deps/ESPressio-Task/tests )
