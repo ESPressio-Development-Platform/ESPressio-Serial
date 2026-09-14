@@ -1,75 +1,107 @@
 #pragma once
 
-#if !__has_include(<ESPressio_Command.hpp>)
-#error "CommandMonitor requires ESPressio Command >= 0.3.0 < 1.0.0."
+#if !__has_include(<ESPressio_CommandDescriptor.hpp>) || !__has_include(<ESPressio_TypeDirectory.hpp>)
+#error "CommandMonitor requires final ESPressio Command descriptor and Primitive TypeDirectory surfaces."
 #endif
 
-#include <Arduino.h>
-#include <ESPressio_Command.hpp>
-#include <ESPressio_ICommandRegistryObserver.hpp>
+#include <cstdint>
+#include <cstdio>
+#include <string_view>
+
+#include <ESPressio_CommandDescriptor.hpp>
+#include <ESPressio_TypeDirectory.hpp>
+
+#include "../console/ESPressio_Console.hpp"
 
 namespace ESPressio::Serial {
 
-/// <summary>Writes Command registry registration activity to an Arduino Print sink.</summary>
-
-class CommandMonitor final :
-    public ESPressio::Command::ICommandRegistryObserver {
-private:
+/// Read-only Command descriptor diagnostics for operator tooling.
+/// No registry observer, execution lifecycle, queue, worker or transport is owned here.
+class CommandMonitor final {
+    Primitive::TypeDirectoryView _types{};
     Print* _output = nullptr;
-    ESPressio::Observable::ObserverHandlePtr _handle;
 
-    /// <summary>Writes one borrowed allocator-aware Command path without materializing a diagnostic copy.</summary>
-    void Line(
-        const char* operation,
-        const ESPressio::Command::CommandPath& path
-    ) {
-        if (!_output) return;
-        _output->print("[ESPressio Command] ");
-        _output->print(operation);
-        if (!path.empty()) {
-            _output->print(" ");
-            for (std::size_t i = 0; i < path.size(); ++i) {
-                if (i) _output->print("/");
-                _output->write(
-                    reinterpret_cast<const uint8_t*>(path[i].data()),
-                    path[i].size()
-                );
-            }
+    static const char* TierName(Command::CommandTier tier) noexcept {
+        switch (tier) {
+            case Command::CommandTier::Local: return "Local";
+            case Command::CommandTier::Serializable: return "Serializable";
+            case Command::CommandTier::Transmissible: return "Transmissible";
         }
-        _output->println();
+        return "Unknown";
+    }
+
+    static const char* ConstructionName(Command::CommandDynamicConstructionMode mode) noexcept {
+        switch (mode) {
+            case Command::CommandDynamicConstructionMode::Unavailable: return "Unavailable";
+            case Command::CommandDynamicConstructionMode::FireAndForget: return "FireAndForget";
+            case Command::CommandDynamicConstructionMode::RequesterRequired: return "RequesterRequired";
+        }
+        return "Unknown";
+    }
+
+    void PrintTypeId(std::uint64_t value) const noexcept {
+        if (!_output) return;
+        char buffer[24]{};
+        std::snprintf(buffer, sizeof(buffer), "%016llX", static_cast<unsigned long long>(value));
+        _output->print(buffer);
     }
 
 public:
-    /// <summary>Registers the monitor with a Command registry and selects its output sink.</summary>
-    /// <param name="output">Destination for diagnostic lines.</param>
-    /// <param name="registry">Registry to observe; defaults to the process-wide Command registry.</param>
-    /// <returns>True when observation is active.</returns>
-    bool Initialize(Print& output, ESPressio::Command::CommandRegistry& registry = ESPressio::Command::CommandRegistry::GetInstance()) {
-        if (_handle) return true;
+    bool Initialize(Primitive::TypeDirectoryView types, Print& output) noexcept {
+        if (!types.IsFrozen()) return false;
+        _types = types;
         _output = &output;
-        _handle = registry.RegisterObserver(this);
-        if (!_handle) { _output = nullptr; return false; }
         return true;
     }
 
-    /// <summary>Unregisters the monitor and releases the output sink reference.</summary>
-    void Shutdown() {
-        _handle.reset();
+    void Shutdown() noexcept {
+        _types = {};
         _output = nullptr;
     }
 
-    /// <summary>Writes a diagnostic line when a Command path is registered.</summary>
-    void OnCommandRegistered(
-        const ESPressio::Command::CommandPath& path
-    ) override {
-        Line("Registered", path);
+    bool GetIsInitialized() const noexcept { return _output != nullptr && _types.IsFrozen(); }
+
+    void List() const noexcept {
+        if (!GetIsInitialized()) return;
+        _output->println("Registered Command Types:");
+        std::size_t count = 0;
+        for (const auto& common : _types) {
+            if (common.Key.Family != Command::CommandFamilyId) continue;
+            const auto* descriptor = Command::GetCommandTypeDescriptor(common);
+            if (!descriptor) continue;
+            ++count;
+            _output->print("  ");
+            _output->print(common.CanonicalName);
+            _output->print(" type=0x");
+            PrintTypeId(common.Key.TypeValue);
+            _output->print(" tier=");
+            _output->print(TierName(descriptor->Tier));
+            _output->print(" construction=");
+            _output->print(ConstructionName(descriptor->DynamicConstruction));
+            _output->print(" handler=");
+            _output->println(descriptor->HasHandler && descriptor->HasHandler() ? "bound" : "unbound");
+        }
+        if (count == 0) _output->println("  <none>");
     }
 
-    /// <summary>Writes a diagnostic line when a Command path is unregistered.</summary>
-    void OnCommandUnregistered(
-        const ESPressio::Command::CommandPath& path
-    ) override {
-        Line("Unregistered", path);
+    bool Describe(std::string_view canonicalName) const noexcept {
+        if (!GetIsInitialized() || canonicalName.empty()) return false;
+        const auto* common = _types.Find(Command::CommandFamilyId, canonicalName);
+        if (!common) return false;
+        const auto* descriptor = Command::GetCommandTypeDescriptor(*common);
+        if (!descriptor) return false;
+
+        _output->print("Command: "); _output->println(common->CanonicalName);
+        _output->print("Type ID: 0x"); PrintTypeId(common->Key.TypeValue); _output->println();
+        _output->print("Tier: "); _output->println(TierName(descriptor->Tier));
+        _output->print("Dynamic construction: "); _output->println(ConstructionName(descriptor->DynamicConstruction));
+        _output->print("Handler: "); _output->println(descriptor->HasHandler && descriptor->HasHandler() ? "bound" : "unbound");
+        _output->print("Max live instances: "); _output->println(descriptor->MaximumLiveInstances);
+        _output->print("Max pending executions: "); _output->println(descriptor->MaximumPendingExecutions);
+        _output->print("Execution lanes: "); _output->println(descriptor->ExecutionLaneCount);
+        _output->print("JSON request bytes: ");
+        _output->println(descriptor->RequestSchema ? descriptor->RequestSchema->MaximumJsonBytes : 0);
+        return true;
     }
 };
 
