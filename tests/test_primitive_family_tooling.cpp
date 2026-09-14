@@ -69,12 +69,16 @@ State::StateDynamicReadResult ReadStateJson(std::uint8_t* output, std::size_t ca
 }
 
 const Serializable::StaticSchemaDescriptor& TestSchema() {
-    static const Serializable::StaticSchemaDescriptor schema{
-        1,
-        16,
-        24,
-        32
-    };
+    static const Serializable::StaticSchemaDescriptor schema = [] {
+        Serializable::StaticSchemaDescriptor value{};
+        value.CurrentVersion = 1;
+        value.MinimumReadableVersion = 1;
+        value.MaximumReadableVersion = 1;
+        value.MaximumDirectBinaryBytes = 16;
+        value.MaximumCborBytes = 24;
+        value.MaximumJsonBytes = 32;
+        return value;
+    }();
     return schema;
 }
 
