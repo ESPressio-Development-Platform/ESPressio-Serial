@@ -53,10 +53,10 @@ class StateMonitor final {
 
     static const char* ReliabilityName(Timing::TimeReliability reliability) noexcept {
         switch (reliability) {
-            case Timing::TimeReliability::Unknown: return "Unknown";
-            case Timing::TimeReliability::SoftwareUnbounded: return "SoftwareUnbounded";
-            case Timing::TimeReliability::Holdover: return "Holdover";
+            case Timing::TimeReliability::Unqualified: return "Unqualified";
+            case Timing::TimeReliability::Acquiring: return "Acquiring";
             case Timing::TimeReliability::Synchronized: return "Synchronized";
+            case Timing::TimeReliability::Holdover: return "Holdover";
         }
         return "Unknown";
     }
