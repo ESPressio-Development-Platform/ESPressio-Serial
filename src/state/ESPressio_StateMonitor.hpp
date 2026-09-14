@@ -1,275 +1,188 @@
 #pragma once
 
-#if !__has_include(<ESPressio_State.hpp>)
-#error "StateMonitor requires ESPressio State. Include the State working branch when using this optional monitor."
+#if !__has_include(<ESPressio_StateDescriptor.hpp>) || !__has_include(<ESPressio_TypeDirectory.hpp>)
+#error "StateMonitor requires final ESPressio State descriptor and Primitive TypeDirectory surfaces."
 #endif
 
-#include <Arduino.h>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
-#include <ESPressio_State.hpp>
+#include <string_view>
+
+#include <ESPressio_StateDescriptor.hpp>
+#include <ESPressio_TypeDirectory.hpp>
+
+#include "../console/ESPressio_Console.hpp"
 
 namespace ESPressio::Serial {
 
-/// <summary>Writes remote-state, subscription, subscriber, publisher, and publication-tracker activity to an Arduino Print sink.</summary>
-/// <remarks>Each State subsystem may be observed independently; Shutdown releases all active observer registrations.</remarks>
+enum class StateMonitorAuthorizationDecision : std::uint8_t {
+    Authorized,
+    Denied
+};
 
-class StateMonitor final :
-    public ESPressio::State::IRemoteStateManagerObserver,
-    public ESPressio::State::IStateSubscriptionRegistryObserver,
-    public ESPressio::State::IStateSubscriberRegistryObserver,
-    public ESPressio::State::IStatePublisherObserver,
-    public ESPressio::State::IStatePublicationObserver {
+/// Application-owned authorization for operator State inspection.
+class IStateMonitorAuthorizer {
+public:
+    virtual ~IStateMonitorAuthorizer() = default;
+    virtual StateMonitorAuthorizationDecision Authorize(
+        const Primitive::PrimitiveTypeDescriptor& descriptor
+    ) const noexcept = 0;
+};
+
+/// Bounded read-only State diagnostics over the final family descriptor surface.
+/// This monitor never acquires State ownership, mutates authoritative State or owns convergence/session/transport behavior.
+template<std::size_t TMaximumPayloadBytes = 2048>
+class StateMonitor final {
+    static_assert(TMaximumPayloadBytes > 0, "StateMonitor requires nonzero bounded output capacity");
+
+    Primitive::TypeDirectoryView _types{};
     Print* _output = nullptr;
-    ESPressio::Observable::ObserverHandlePtr _remoteStateHandle;
-    ESPressio::Observable::ObserverHandlePtr _subscriptionHandle;
-    ESPressio::Observable::ObserverHandlePtr _subscriberHandle;
-    ESPressio::Observable::ObserverHandlePtr _publisherHandle;
-    ESPressio::Observable::ObserverHandlePtr _publicationHandle;
+    const IStateMonitorAuthorizer* _authorizer = nullptr;
+    std::array<std::uint8_t, TMaximumPayloadBytes> _payload{};
 
-    static const char* AvailabilityName(ESPressio::State::RemoteDeviceAvailability value) {
-        using A = ESPressio::State::RemoteDeviceAvailability;
-        switch (value) {
-            case A::Unknown: return "Unknown";
-            case A::Connected: return "Connected";
-            case A::Stale: return "Stale";
-            case A::Disconnected: return "Disconnected";
-            case A::ConnectionLost: return "ConnectionLost";
+    static const char* TierName(State::StateTier tier) noexcept {
+        switch (tier) {
+            case State::StateTier::Local: return "Local";
+            case State::StateTier::Serializable: return "Serializable";
+            case State::StateTier::Transmissible: return "Transmissible";
         }
         return "Unknown";
     }
 
-    void Prefix(const char* operation) {
-        if (!_output) return;
-        _output->print("[ESPressio State] ");
-        _output->print(operation);
-    }
-
-    void Device(const ESPressio::State::DeviceIdentifier& identifier) {
-        if (!_output) return;
-        const auto& bytes = identifier.Bytes();
-        for (std::size_t index = 0; index < bytes.size(); ++index) {
-            if (index) _output->print(':');
-            char value[3];
-            std::snprintf(value, sizeof(value), "%02X", static_cast<unsigned>(bytes[index]));
-            _output->print(value);
+    static const char* ReliabilityName(Timing::TimeReliability reliability) noexcept {
+        switch (reliability) {
+            case Timing::TimeReliability::Unknown: return "Unknown";
+            case Timing::TimeReliability::SoftwareUnbounded: return "SoftwareUnbounded";
+            case Timing::TimeReliability::Holdover: return "Holdover";
+            case Timing::TimeReliability::Synchronized: return "Synchronized";
         }
+        return "Unknown";
     }
 
-    void Type(ESPressio::State::StateTypeId value) {
+    void PrintTypeId(std::uint64_t value) const noexcept {
         if (!_output) return;
-        char buffer[24];
-        std::snprintf(buffer, sizeof(buffer), " type=0x%016llX", static_cast<unsigned long long>(value));
-        _output->print(buffer);
-    }
-
-    void Revision(const char* label, ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) {
-        if (!_output) return;
-        char buffer[48];
-        std::snprintf(
-            buffer,
-            sizeof(buffer),
-            " %s=%lu:%llu",
-            label,
-            static_cast<unsigned long>(epoch),
-            static_cast<unsigned long long>(revision)
-        );
+        char buffer[24]{};
+        std::snprintf(buffer, sizeof(buffer), "%016llX", static_cast<unsigned long long>(value));
         _output->print(buffer);
     }
 
 public:
-    /// <summary>Observes one RemoteStateManager instance.</summary>
-    /// <returns>True when the remote-state observer registration is active.</returns>
-    template<typename TContract, std::size_t TMaximumDevices>
-    bool ObserveRemoteState(
-        ESPressio::State::RemoteStateManager<TContract, TMaximumDevices>& manager,
-        Print& output
-    ) {
-        if (_remoteStateHandle) return true;
+    bool Initialize(
+        Primitive::TypeDirectoryView types,
+        Print& output,
+        const IStateMonitorAuthorizer& authorizer
+    ) noexcept {
+        if (!types.IsFrozen()) return false;
+        _types = types;
         _output = &output;
-        _remoteStateHandle = manager.RegisterObserver(
-            static_cast<ESPressio::State::IRemoteStateManagerObserver*>(this)
-        );
-        return static_cast<bool>(_remoteStateHandle);
+        _authorizer = &authorizer;
+        return true;
     }
 
-    /// <summary>Observes one local State subscription registry.</summary>
-    /// <returns>True when the subscription-registry observer registration is active.</returns>
-    template<std::size_t TCapacity>
-    bool ObserveSubscriptions(
-        ESPressio::State::StateSubscriptionRegistry<TCapacity>& registry,
-        Print& output
-    ) {
-        if (_subscriptionHandle) return true;
-        _output = &output;
-        _subscriptionHandle = registry.RegisterObserver(
-            static_cast<ESPressio::State::IStateSubscriptionRegistryObserver*>(this)
-        );
-        return static_cast<bool>(_subscriptionHandle);
-    }
-
-    /// <summary>Observes one remote-subscriber registry.</summary>
-    /// <returns>True when the subscriber-registry observer registration is active.</returns>
-    template<typename TContract, std::size_t TMaximumSubscribers>
-    bool ObserveSubscribers(
-        ESPressio::State::StateSubscriberRegistry<TContract, TMaximumSubscribers>& registry,
-        Print& output
-    ) {
-        if (_subscriberHandle) return true;
-        _output = &output;
-        _subscriberHandle = registry.RegisterObserver(
-            static_cast<ESPressio::State::IStateSubscriberRegistryObserver*>(this)
-        );
-        return static_cast<bool>(_subscriberHandle);
-    }
-
-    /// <summary>Observes one StatePublisher instance.</summary>
-    /// <returns>True when the publisher observer registration is active.</returns>
-    template<typename TContract>
-    bool ObservePublisher(
-        ESPressio::State::StatePublisher<TContract>& publisher,
-        Print& output
-    ) {
-        if (_publisherHandle) return true;
-        _output = &output;
-        _publisherHandle = publisher.RegisterObserver(
-            static_cast<ESPressio::State::IStatePublisherObserver*>(this)
-        );
-        return static_cast<bool>(_publisherHandle);
-    }
-
-    /// <summary>Observes publication acknowledgement/supersession tracking for one State definition.</summary>
-    /// <returns>True when the publication-tracker observer registration is active.</returns>
-    template<typename TDefinition>
-    bool ObservePublications(
-        ESPressio::State::StatePublicationTracker<TDefinition>& tracker,
-        Print& output
-    ) {
-        if (_publicationHandle) return true;
-        _output = &output;
-        _publicationHandle = tracker.RegisterObserver(
-            static_cast<ESPressio::State::IStatePublicationObserver*>(this)
-        );
-        return static_cast<bool>(_publicationHandle);
-    }
-
-    /// <summary>Releases every active State observer registration and the output sink reference.</summary>
-    void Shutdown() {
-        _publicationHandle.reset();
-        _publisherHandle.reset();
-        _subscriberHandle.reset();
-        _subscriptionHandle.reset();
-        _remoteStateHandle.reset();
+    void Shutdown() noexcept {
+        _types = {};
         _output = nullptr;
+        _authorizer = nullptr;
     }
 
-    /// <inheritdoc/>
-    void OnRemoteStateDeviceRegistered(const ESPressio::State::DeviceIdentifier& device) override {
-        Prefix("DeviceRegistered"); _output->print(" device="); Device(device); _output->println();
+    bool GetIsInitialized() const noexcept {
+        return _output != nullptr && _authorizer != nullptr && _types.IsFrozen();
     }
 
-    /// <inheritdoc/>
-    void OnRemoteStateAccepted(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
-        ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision, bool changed) override {
-        Prefix("Accepted"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision);
-        _output->print(" changed="); _output->println(changed ? "true" : "false");
+    void List() const noexcept {
+        if (!GetIsInitialized()) return;
+        _output->println("Registered State Types:");
+        std::size_t count = 0;
+        for (const auto& common : _types) {
+            if (common.Key.Family != State::StateFamilyId) continue;
+            const auto* descriptor = State::GetStateTypeDescriptor(common);
+            if (!descriptor) continue;
+            ++count;
+            _output->print("  ");
+            _output->print(common.CanonicalName);
+            _output->print(" type=0x");
+            PrintTypeId(common.Key.TypeValue);
+            _output->print(" tier=");
+            _output->print(TierName(descriptor->Tier));
+            _output->print(" value=");
+            _output->println(descriptor->HasValue && descriptor->HasValue() ? "present" : "absent");
+        }
+        if (count == 0) _output->println("  <none>");
     }
 
-    /// <inheritdoc/>
-    void OnRemoteStateRejected(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
-        ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
-        Prefix("Rejected"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision); _output->println();
+    bool Describe(std::string_view canonicalName) const noexcept {
+        if (!GetIsInitialized() || canonicalName.empty()) return false;
+        const auto* common = _types.Find(State::StateFamilyId, canonicalName);
+        if (!common) return false;
+        const auto* descriptor = State::GetStateTypeDescriptor(*common);
+        if (!descriptor) return false;
+
+        _output->print("State: "); _output->println(common->CanonicalName);
+        _output->print("Type ID: 0x"); PrintTypeId(common->Key.TypeValue); _output->println();
+        _output->print("Tier: "); _output->println(TierName(descriptor->Tier));
+        _output->print("Value bytes: "); _output->println(descriptor->ValueBytes);
+        _output->print("Runtime bytes: "); _output->println(descriptor->RuntimeBytes);
+        _output->print("Current value: ");
+        _output->println(descriptor->HasValue && descriptor->HasValue() ? "present" : "absent");
+        _output->print("JSON value bytes: ");
+        _output->println(descriptor->ValueSchema ? descriptor->ValueSchema->MaximumJsonBytes : 0);
+        return true;
     }
 
-    /// <inheritdoc/>
-    void OnRemoteStateAvailabilityChanged(const ESPressio::State::DeviceIdentifier& device,
-        ESPressio::State::RemoteDeviceAvailability previous, ESPressio::State::RemoteDeviceAvailability current) override {
-        Prefix("Availability"); _output->print(" device="); Device(device); _output->print(" previous=");
-        _output->print(AvailabilityName(previous)); _output->print(" current="); _output->println(AvailabilityName(current));
-    }
+    State::StateDynamicReadStatus ReadJson(std::string_view canonicalName) noexcept {
+        if (!GetIsInitialized() || canonicalName.empty()) return State::StateDynamicReadStatus::UnsupportedFormat;
+        const auto* common = _types.Find(State::StateFamilyId, canonicalName);
+        if (!common) {
+            _output->println("State type is not registered.");
+            return State::StateDynamicReadStatus::UnsupportedFormat;
+        }
+        const auto* descriptor = State::GetStateTypeDescriptor(*common);
+        if (!descriptor || !descriptor->ValueSchema) {
+            _output->println("State type is not serializable for generic inspection.");
+            return State::StateDynamicReadStatus::UnsupportedFormat;
+        }
+        if (_authorizer->Authorize(*common) != StateMonitorAuthorizationDecision::Authorized) {
+            _output->println("State inspection is not authorized.");
+            return State::StateDynamicReadStatus::UnsupportedFormat;
+        }
 
-    /// <inheritdoc/>
-    void OnStateSubscribed(ESPressio::State::StateTypeId typeId, ESPressio::State::StateSubscriptionScope,
-        const ESPressio::State::DeviceIdentifier& device) override {
-        Prefix("Subscribed"); Type(typeId); _output->print(" device=");
-        if (device.IsZero()) _output->print("ANY"); else Device(device); _output->println();
-    }
+        const auto maximum = descriptor->ValueSchema->MaximumJsonBytes;
+        if (maximum == 0 || maximum > _payload.size()) {
+            _output->println("State JSON representation exceeds monitor capacity.");
+            return State::StateDynamicReadStatus::InsufficientOutput;
+        }
 
-    /// <inheritdoc/>
-    void OnStateUnsubscribed(ESPressio::State::StateTypeId typeId, ESPressio::State::StateSubscriptionScope,
-        const ESPressio::State::DeviceIdentifier& device) override {
-        Prefix("Unsubscribed"); Type(typeId); _output->print(" device=");
-        if (device.IsZero()) _output->print("ANY"); else Device(device); _output->println();
-    }
+        const auto result = State::ReadDynamicState(
+            *descriptor,
+            State::StatePayloadFormat::JSON,
+            _payload.data(),
+            _payload.size());
 
-    /// <inheritdoc/>
-    void OnStateSubscriptionCapacityExhausted(ESPressio::State::StateTypeId typeId,
-        ESPressio::State::StateSubscriptionScope, const ESPressio::State::DeviceIdentifier& device) override {
-        Prefix("SubscriptionCapacityExhausted"); Type(typeId); if (!device.IsZero()) { _output->print(" device="); Device(device); } _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnRemoteStateSubscriberAdded(const ESPressio::State::DeviceIdentifier& device,
-        ESPressio::State::StateTypeId typeId) override {
-        Prefix("RemoteSubscriberAdded"); _output->print(" device="); Device(device); Type(typeId); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnRemoteStateSubscriberRemoved(const ESPressio::State::DeviceIdentifier& device,
-        ESPressio::State::StateTypeId typeId) override {
-        Prefix("RemoteSubscriberRemoved"); _output->print(" device="); Device(device); Type(typeId); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnRemoteStateSubscriberDeviceRemoved(const ESPressio::State::DeviceIdentifier& device) override {
-        Prefix("RemoteSubscriberDeviceRemoved"); _output->print(" device="); Device(device); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnRemoteStateSubscriberCapacityExhausted(const ESPressio::State::DeviceIdentifier& device,
-        ESPressio::State::StateTypeId typeId) override {
-        Prefix("RemoteSubscriberCapacityExhausted"); _output->print(" device="); Device(device); Type(typeId); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnStateSourceRegistered(ESPressio::State::StateTypeId typeId) override {
-        Prefix("SourceRegistered"); Type(typeId); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnStateSourceUnregistered(ESPressio::State::StateTypeId typeId) override {
-        Prefix("SourceUnregistered"); Type(typeId); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnStatePublished(ESPressio::State::StateTypeId typeId, ESPressio::State::StateEpoch epoch,
-        ESPressio::State::StateRevision revision) override {
-        Prefix("Published"); Type(typeId); Revision("revision", epoch, revision); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnStatePublicationPending(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
-        ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
-        Prefix("PublicationPending"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnStatePublicationSuperseded(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
-        ESPressio::State::StateEpoch previousEpoch, ESPressio::State::StateRevision previousRevision,
-        ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
-        Prefix("PublicationSuperseded"); _output->print(" device="); Device(device); Type(typeId);
-        Revision("previous", previousEpoch, previousRevision); Revision("latest", epoch, revision); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnStatePublicationAcknowledged(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
-        ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
-        Prefix("Acknowledged"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision); _output->println();
-    }
-
-    /// <inheritdoc/>
-    void OnStatePublicationStaleAcknowledgement(const ESPressio::State::DeviceIdentifier& device, ESPressio::State::StateTypeId typeId,
-        ESPressio::State::StateEpoch epoch, ESPressio::State::StateRevision revision) override {
-        Prefix("StaleAcknowledgement"); _output->print(" device="); Device(device); Type(typeId); Revision("revision", epoch, revision); _output->println();
+        switch (result.Status) {
+            case State::StateDynamicReadStatus::Success:
+                _output->print("State value: ");
+                _output->print(std::string_view(
+                    reinterpret_cast<const char*>(_payload.data()), result.Bytes));
+                _output->println();
+                _output->print("Truth time ns: "); _output->println(result.TruthTime.Nanoseconds);
+                _output->print("Truth reliability: "); _output->println(ReliabilityName(result.TruthTime.Reliability));
+                break;
+            case State::StateDynamicReadStatus::NoValue:
+                _output->println("State has no current value.");
+                break;
+            case State::StateDynamicReadStatus::InsufficientOutput:
+                _output->println("State representation exceeds monitor capacity.");
+                break;
+            case State::StateDynamicReadStatus::SerializationFailure:
+                _output->println("State serialization failed.");
+                break;
+            case State::StateDynamicReadStatus::UnsupportedFormat:
+                _output->println("State JSON representation is unavailable.");
+                break;
+        }
+        return result.Status;
     }
 };
 
