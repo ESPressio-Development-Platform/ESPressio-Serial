@@ -2,7 +2,11 @@ name: Host Tests
 
 on:
   push:
+    branches: [primitives_redesign]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   host-tests:
@@ -10,175 +14,71 @@ jobs:
     steps:
       - name: Checkout Serial
         uses: actions/checkout@v4
-      - name: Checkout ESPressio System primitives redesign branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-System
-          ref: primitives_redesign
-          path: deps/ESPressio-System
-      - name: Checkout ESPressio Logging working branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Logging
-          ref: primitives_redesign
-          path: deps/ESPressio-Logging
-      - name: Checkout ESPressio Timing working branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: primitives_redesign
-          path: deps/ESPressio-Timing
-      - name: Checkout ESPressio Units working branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Units
-          ref: primitives_redesign
-          path: deps/ESPressio-Units
-      - name: Checkout asynchronous ESPressio Command branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Command
-          ref: primitives_redesign
-          path: deps/ESPressio-Command
-      - name: Checkout ESPressio Observable working branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: primitives_redesign
-          path: deps/ESPressio-Observable
-      - name: Checkout ESPressio Serializable working branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-Serializable
-          ref: primitives_redesign
-          path: deps/ESPressio-Serializable
-      - name: Checkout ESPressio WiFi working branch
-        uses: actions/checkout@v4
-        with:
-          repository: ESPressio-Development-Platform/ESPressio-WiFi
-          ref: primitives_redesign
-          path: deps/ESPressio-WiFi
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: primitives_redesign, path: deps/ESPressio-System}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Logging, ref: primitives_redesign, path: deps/ESPressio-Logging}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Primitive, ref: primitives_redesign, path: deps/ESPressio-Primitive}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Command, ref: primitives_redesign, path: deps/ESPressio-Command}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Event, ref: primitives_redesign, path: deps/ESPressio-Event}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-State, ref: primitives_redesign, path: deps/ESPressio-State}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: primitives_redesign, path: deps/ESPressio-Task}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Threads, ref: primitives_redesign, path: deps/ESPressio-Threads}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: primitives_redesign, path: deps/ESPressio-Timing}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: primitives_redesign, path: deps/ESPressio-Units}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: primitives_redesign, path: deps/ESPressio-Observable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: primitives_redesign, path: deps/ESPressio-Serializable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Persistence, ref: primitives_redesign, path: deps/ESPressio-Persistence}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Security, ref: primitives_redesign, path: deps/ESPressio-Security}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-WiFi, ref: primitives_redesign, path: deps/ESPressio-WiFi}
+
+      - name: Reject predecessor family test architecture
+        shell: bash
+        run: |
+          if grep -R -nE 'CommandRegistry|CommandRequestEnvelope|InboundCommandEvent|CommandResponseRouteRegistry|EventTransportManager|IEventTransport' \
+              tests/test_command_console.cpp tests/test_event_console.cpp tests/test_primitive_family_tooling.cpp; then
+            echo 'Aggregate Serial tests still encode predecessor family architecture.' >&2
+            exit 1
+          fi
+          test ! -e src/event/ESPressio_EventMonitorFormatter.hpp
+          test ! -e src/event/ESPressio_EventMonitorPayloadSafety.hpp
+          test ! -e tests/stubs/ESPressio_CommandEvents.hpp
+          test ! -e tests/stubs/ESPressio_EventTransport.hpp
+
       - name: Configure
         run: >-
           cmake -S tests -B build
           -DESPRESSIO_SYSTEM_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-System/src"
           -DESPRESSIO_LOGGING_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Logging/src"
+          -DESPRESSIO_PRIMITIVE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Primitive/src"
+          -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
+          -DESPRESSIO_EVENT_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Event/src"
+          -DESPRESSIO_STATE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-State/src"
+          -DESPRESSIO_TASK_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Task/src"
+          -DESPRESSIO_THREADS_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Threads/src"
           -DESPRESSIO_TIMING_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Timing/src"
           -DESPRESSIO_UNITS_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Units/src"
-          -DESPRESSIO_COMMAND_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Command/src"
           -DESPRESSIO_OBSERVABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Observable/src"
           -DESPRESSIO_SERIALIZABLE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Serializable/src"
+          -DESPRESSIO_PERSISTENCE_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Persistence/src"
+          -DESPRESSIO_SECURITY_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Security/src"
           -DESPRESSIO_WIFI_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-WiFi/src"
+          -DESPRESSIO_TIMING_TEST_STUB_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Timing/tests/stubs"
+          -DESPRESSIO_TASK_TEST_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Task/tests"
       - name: Build
         run: cmake --build build --parallel
       - name: Test
         run: ctest --test-dir build --output-on-failure
-
-  esp32-observable-monitors:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Serial
-        uses: actions/checkout@v4
-        with:
-          path: project/ESPressio-Serial
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: primitives_redesign, path: project/dependencies/ESPressio-System}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: primitives_redesign, path: project/dependencies/ESPressio-Task}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: primitives_redesign, path: project/dependencies/ESPressio-Observable}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: primitives_redesign, path: project/dependencies/ESPressio-Serializable}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: primitives_redesign, path: project/dependencies/ESPressio-Units}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: primitives_redesign, path: project/dependencies/ESPressio-Timing}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Threads, ref: primitives_redesign, path: project/dependencies/ESPressio-Threads}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Event, ref: primitives_redesign, path: project/dependencies/ESPressio-Event}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Command, ref: primitives_redesign, path: project/dependencies/ESPressio-Command}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Security, ref: primitives_redesign, path: project/dependencies/ESPressio-Security}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Persistence, ref: primitives_redesign, path: project/dependencies/ESPressio-Persistence}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-Sockets, ref: primitives_redesign, path: project/dependencies/ESPressio-Sockets}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-ESP-Now, ref: primitives_redesign, path: project/dependencies/ESPressio-ESP-Now}
-      - uses: actions/checkout@v4
-        with: {repository: ESPressio-Development-Platform/ESPressio-WiFi, ref: primitives_redesign, path: project/dependencies/ESPressio-WiFi}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-      - name: Install PlatformIO
-        run: pip install platformio
-      - name: Create monitor compile project
-        shell: bash
-        run: |
-          mkdir -p project/compile/src
-          cat > project/compile/network_include.py <<'EOF'
-          Import("env")
-          framework = env.PioPlatform().get_package_dir("framework-arduinoespressif32")
-          env.Append(CPPPATH=[
-              framework + "/libraries/Network/src",
-              framework + "/libraries/WiFi/src",
-              framework + "/libraries/NetworkClientSecure/src"
-          ])
-          EOF
-          cat > project/compile/platformio.ini <<'EOF'
-          [env:esp32]
-          platform = https://github.com/pioarduino/platform-espressif32/releases/download/55.03.311/platform-espressif32.zip
-          board = esp32dev
-          framework = arduino
-          extra_scripts = pre:network_include.py
-          build_flags =
-              -std=gnu++17
-              -frtti
-              -I../dependencies/ESPressio-Command/src
-              -I../dependencies/ESPressio-Security/src
-              -I../dependencies/ESPressio-Persistence/src
-              -I../dependencies/ESPressio-Sockets/src
-              -I../dependencies/ESPressio-ESP-Now/src
-              -I../dependencies/ESPressio-WiFi/src
-          build_unflags =
-              -std=gnu++11
-              -fno-rtti
-          lib_ldf_mode = deep+
-          lib_deps =
-              ../dependencies/ESPressio-System
-              ../dependencies/ESPressio-Logging
-              ../dependencies/ESPressio-Task
-              ../dependencies/ESPressio-Observable
-              ../dependencies/ESPressio-Serializable
-              ../dependencies/ESPressio-Units
-              ../dependencies/ESPressio-Timing
-              ../dependencies/ESPressio-Threads
-              ../dependencies/ESPressio-Event
-              ../dependencies/ESPressio-Command
-              ../dependencies/ESPressio-Security
-              ../dependencies/ESPressio-Persistence
-              ../dependencies/ESPressio-Sockets
-              ../dependencies/ESPressio-ESP-Now
-              ../dependencies/ESPressio-WiFi
-              ../ESPressio-Serial
-          EOF
-          cat > project/compile/src/main.cpp <<'EOF'
-          #include <Arduino.h>
-          #include <Network.h>
-          #include <WiFi.h>
-          #include <ESPressio_Logging.hpp>
-          #include <ESPressio_CommandMonitor.hpp>
-          #include <ESPressio_SecurityMonitor.hpp>
-          #include <ESPressio_SocketWorkerMonitor.hpp>
-          #include <ESPressio_SocketSecuritySessionMonitor.hpp>
-          #include <ESPressio_ESPNowTransportMonitor.hpp>
-          #include <ESPressio_EventMonitor.hpp>
-          #include <ESPressio_WiFiMonitor.hpp>
-          #include <event/ESPressio_EventMonitorPayloadSafety.hpp>
-          void setup() {}
-          void loop() {}
-          EOF
-      - name: Compile ESP32 monitor integrations against coordinated cascade
-        run: pio run -d project/compile
