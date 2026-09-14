@@ -10,7 +10,7 @@
 namespace ESPressio::Serial {
 
 /// <summary>Writes passive diagnostics from the final WiFi runtime observer/state surface.</summary>
-/// <remarks>Uses WiFi's own observer contract directly; no Event bridge, EventThread, worker, or transport shim is owned here.</remarks>
+/// <remarks>Uses WiFi's own observer contract directly; no family bridge, application worker, or transport shim is owned here.</remarks>
 class WiFiMonitor final : public ESPressio::WiFi::IWiFiObserver {
 private:
     Print* _output = nullptr;
