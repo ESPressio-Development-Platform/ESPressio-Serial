@@ -2,7 +2,11 @@ name: Final Diagnostics Contract
 
 on:
   push:
+    branches: [primitives_redesign]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   ownership-boundaries:
@@ -18,6 +22,8 @@ jobs:
           test ! -e src/espnow/ESPressio_ESPNowTransportMonitor.hpp
           test ! -e src/ESPressio_SocketWorkerMonitor.hpp
           test ! -e src/sockets/ESPressio_SocketWorkerMonitor.hpp
+          test ! -e src/event/ESPressio_EventMonitorFormatter.hpp
+          test ! -e src/event/ESPressio_EventMonitorPayloadSafety.hpp
           grep -q 'ESPressio_IThread.hpp' src/threads/ESPressio_ThreadMonitor.hpp
           grep -q 'GetDiagnostics' src/threads/ESPressio_ThreadMonitor.hpp
           grep -q 'TimeReliability' src/timing/ESPressio_SystemClockMonitor.hpp
@@ -27,7 +33,12 @@ jobs:
           grep -q 'ESPressio_SocketAdapterTransport.hpp' src/sockets/ESPressio_SocketAdapterTransportMonitor.hpp
           grep -q 'Generation()' src/sockets/ESPressio_SocketAdapterTransportMonitor.hpp
           grep -q 'IWiFiObserver' src/wifi/ESPressio_WiFiMonitor.hpp
-          if grep -R -E 'ThreadManager|ESPNowTransport|SocketWorker|EventThread|WiFiEvents' \
+          grep -q 'ESPressio_TypeDirectory.hpp' src/diagnostics/ESPressio_DiagnosticMonitor.hpp
+          grep -q 'ESPressio_EventTypeDescriptor.hpp' src/diagnostics/ESPressio_DiagnosticMonitor.hpp
+          grep -q 'ESPressio_CommandDescriptor.hpp' src/diagnostics/ESPressio_DiagnosticMonitor.hpp
+          grep -q 'ESPressio_IThread.hpp' src/diagnostics/ESPressio_DiagnosticMonitor.hpp
+          if grep -R -E 'ThreadManager|ESPNowTransport|SocketWorker|EventThread|WiFiEvents|EventTransportManager|ICommandRegistryObserver' \
+              src/diagnostics/ESPressio_DiagnosticMonitor.hpp \
               src/threads/ESPressio_ThreadMonitor.hpp \
               src/timing/ESPressio_SystemClockMonitor.hpp \
               src/espnow/ESPressio_ESPNowRadioMonitor.hpp \
@@ -36,6 +47,47 @@ jobs:
             echo 'Final Serial diagnostics must not reacquire predecessor runtime ownership.' >&2
             exit 1
           fi
+
+  host-diagnostic-aggregator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {path: ESPressio-Serial}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: primitives_redesign, path: deps/ESPressio-System}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Primitive, ref: primitives_redesign, path: deps/ESPressio-Primitive}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Command, ref: primitives_redesign, path: deps/ESPressio-Command}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Event, ref: primitives_redesign, path: deps/ESPressio-Event}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: primitives_redesign, path: deps/ESPressio-Task}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Threads, ref: primitives_redesign, path: deps/ESPressio-Threads}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: primitives_redesign, path: deps/ESPressio-Timing}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: primitives_redesign, path: deps/ESPressio-Serializable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: primitives_redesign, path: deps/ESPressio-Units}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: primitives_redesign, path: deps/ESPressio-Observable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Persistence, ref: primitives_redesign, path: deps/ESPressio-Persistence}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Security, ref: primitives_redesign, path: deps/ESPressio-Security}
+      - name: Compile final diagnostic aggregator surface
+        shell: bash
+        run: |
+          includes=(-I ESPressio-Serial/tests/stubs -I ESPressio-Serial/src)
+          for dep in System Primitive Command Event Task Threads Timing Serializable Units Observable Persistence Security; do
+            includes+=( -I "deps/ESPressio-${dep}/src" )
+          done
+          includes+=( -I deps/ESPressio-Timing/tests/stubs -I deps/ESPressio-Task/tests )
+          printf '#include <ESPressio_DiagnosticMonitor.hpp>\nint main(){return 0;}\n' > diagnostic-aggregator.cpp
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -fno-rtti \
+            "${includes[@]}" diagnostic-aggregator.cpp -pthread -o diagnostic-aggregator
 
   esp32-wifi-monitor:
     runs-on: ubuntu-latest
