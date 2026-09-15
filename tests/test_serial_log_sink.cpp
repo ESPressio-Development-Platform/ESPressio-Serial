@@ -61,7 +61,7 @@ int main() {
         Logging::LogTimestamp{
             123456789ULL,
             1700000000000000000ULL,
-            Timing::ClockSynchronizationState::Synchronized
+            Timing::TimeReliability::Synchronized
         },
         Logging::LogLevel::Error,
         category,
