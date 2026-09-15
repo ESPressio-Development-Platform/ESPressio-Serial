@@ -1,111 +1,105 @@
 #include <Arduino.h>
 
-#include <ESPressio_EventTransport.hpp>
-#include <ESPressio_Event_Serializable.hpp>
+#include <ESPressio_ArduinoByteStream.hpp>
+#include <ESPressio_Event.hpp>
+#include <ESPressio_TypeDirectory.hpp>
 
 #include <ESPressio_Console.hpp>
 #include <ESPressio_EventConsole.hpp>
 
+namespace E = ESPressio::Event;
+using namespace ESPressio;
 
-class OperatorMessageEvent final :
-    public ESPressio::Event::
-        SerializableEvent<
-            OperatorMessageEvent
-        > {
+struct OperatorMessageEvent final : E::SerializableEvent<OperatorMessageEvent> {
+    static constexpr E::EventTypeId TypeId{0x5101};
+    static constexpr std::string_view CanonicalName =
+        "flowduino.example.serial.operator-message.v1";
+    static constexpr std::size_t MaximumLiveInstances = 4;
+    static constexpr std::size_t MaximumPendingInstances = 1;
 
-public:
-    String Message;
-    uint32_t Sequence = 0;
+    std::int32_t Code = 0;
+    std::uint32_t Sequence = 0;
 
-    ESPRESSIO_SERIALIZABLE_TYPE(
-        OperatorMessageEvent
-    )
-
+    ESPRESSIO_SERIALIZABLE_TYPE(OperatorMessageEvent)
     ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
-
     ESPRESSIO_SERIALIZABLE_PROPERTIES(
-        ESPRESSIO_PROPERTY(
-            "message",
-            Message
-        ),
-        ESPRESSIO_PROPERTY(
-            "sequence",
-            Sequence
-        )
+        ESPRESSIO_PROPERTY("code", Code),
+        ESPRESSIO_PROPERTY("sequence", Sequence)
     )
 };
 
-ESPRESSIO_EVENT_TRANSPORT_TYPE(
-    OperatorMessageEvent,
-    "flowduino.example.serial.operator-message.v1"
-)
+static_assert(Serializable::IsBoundedSerializable<OperatorMessageEvent>);
 
-ESPressio::Serial::Console console;
-ESPressio::Serial::EventConsole eventConsole;
+class OperatorEventAuthorizer final : public Serial::IEventConsoleAuthorizer {
+public:
+    Serial::EventConsoleAuthorizationDecision Authorize(
+        const Primitive::PrimitiveTypeDescriptor& descriptor
+    ) const noexcept override {
+        return descriptor.Key.Family == E::EventFamilyId &&
+               descriptor.Key.TypeValue == OperatorMessageEvent::TypeId.Value()
+            ? Serial::EventConsoleAuthorizationDecision::Authorized
+            : Serial::EventConsoleAuthorizationDecision::Denied;
+    }
+};
+
+Primitive::TypeDirectory<1> primitiveTypes;
+E::Runtime events;
+ESP32Platform::ArduinoByteStream serialIO(::Serial);
+Serial::Console console;
+Serial::EventConsole eventConsole;
+OperatorEventAuthorizer eventAuthorizer;
 
 void setup() {
     ::Serial.begin(115200);
 
-    auto& manager =
-        ESPressio::Event::
-            EventTransportManager::
-                GetInstance();
+    // The platform application must install its normal System execution,
+    // synchronization and clock providers before Event runtime bootstrap.
+    if (primitiveTypes.Register<OperatorMessageEvent>() !=
+        Primitive::TypeDirectoryRegistrationStatus::Success) {
+        ::Serial.println("Failed to register OperatorMessageEvent");
+        return;
+    }
 
-    /*
-     * Registration places the type in Event's runtime Serializable
-     * Event registry. Existing Event Transport routing rules still apply.
-     */
-    manager.RegisterBidirectionalEvent<
-        OperatorMessageEvent
-    >();
+    if (primitiveTypes.Initialize() !=
+        Primitive::TypeDirectoryInitializationStatus::Success) {
+        ::Serial.println("Failed to freeze Primitive TypeDirectory");
+        return;
+    }
 
-    ESPressio::Serial::ConsoleConfig
-        consoleConfig;
+    if (events.Initialize(primitiveTypes.View()) != E::EventRuntimeStatus::Success ||
+        events.Start() != E::EventRuntimeStatus::Success) {
+        ::Serial.println("Failed to start Event runtime");
+        return;
+    }
 
-    consoleConfig.Prompt =
-        "espressio> ";
+    Serial::ConsoleConfig consoleConfig;
+    consoleConfig.Prompt = "espressio> ";
+    consoleConfig.MaximumLineLength = 192;
 
-    console.Initialize(
-        ::Serial,
-        ::Serial,
-        consoleConfig
-    );
+    if (!console.Initialize(serialIO, consoleConfig)) {
+        ::Serial.println("Failed to initialize Serial console");
+        return;
+    }
 
-    ESPressio::Serial::
-        EventConsoleConfig
-            eventConsoleConfig;
+    Serial::EventConsoleConfig eventConsoleConfig;
+    eventConsoleConfig.MaximumJsonLength = 128;
 
-    eventConsoleConfig.RequireConfirmation =
-        true;
-
-    eventConsole.Initialize(
-        console,
-        eventConsoleConfig,
-        manager
-    );
-
-    /*
-     * Safe default: only explicitly allowed Event types can be dispatched
-     * by the operator.
-     */
-    eventConsole.AllowEvent<
-        OperatorMessageEvent
-    >();
-
-    manager.Initialize();
+    if (!eventConsole.Initialize(
+            console,
+            primitiveTypes.View(),
+            eventAuthorizer,
+            eventConsoleConfig)) {
+        ::Serial.println("Failed to initialize Event console");
+        return;
+    }
 
     ::Serial.println();
     ::Serial.println("Try:");
     ::Serial.println("  events");
     ::Serial.println(
-        "  event describe flowduino.example.serial.operator-message.v1"
-    );
+        "  event describe flowduino.example.serial.operator-message.v1");
     ::Serial.println(
-        "  event queue flowduino.example.serial.operator-message.v1 {\"message\":\"hello\",\"sequence\":1}"
-    );
-    ::Serial.println(
-        "  event compose flowduino.example.serial.operator-message.v1"
-    );
+        "  event json flowduino.example.serial.operator-message.v1 {\"code\":7,\"sequence\":1}");
 }
 
 void loop() {

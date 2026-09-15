@@ -1,165 +1,113 @@
 #include <Arduino.h>
 
-#include <ESPressio_EventTransport.hpp>
-#include <ESPressio_Event_Serializable.hpp>
+#include <ESPressio_ArduinoByteStream.hpp>
+#include <ESPressio_Event.hpp>
+#include <ESPressio_TypeDirectory.hpp>
 
 #include <ESPressio_Console.hpp>
 #include <ESPressio_EventConsole.hpp>
 #include <ESPressio_EventMonitor.hpp>
 
+namespace E = ESPressio::Event;
+using namespace ESPressio;
 
-class RemoteCommandEvent final :
-    public ESPressio::Event::
-        SerializableEvent<
-            RemoteCommandEvent
-        > {
+struct RemoteCommandEvent final : E::SerializableEvent<RemoteCommandEvent> {
+    static constexpr E::EventTypeId TypeId{0x5103};
+    static constexpr std::string_view CanonicalName =
+        "flowduino.example.serial.remote-command.v1";
+    static constexpr std::size_t MaximumLiveInstances = 4;
+    static constexpr std::size_t MaximumPendingInstances = 1;
 
-public:
-    String Command;
-    int32_t Value = 0;
+    std::int32_t Command = 0;
+    std::int32_t Value = 0;
 
-    ESPRESSIO_SERIALIZABLE_TYPE(
-        RemoteCommandEvent
-    )
-
+    ESPRESSIO_SERIALIZABLE_TYPE(RemoteCommandEvent)
     ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
-
     ESPRESSIO_SERIALIZABLE_PROPERTIES(
-        ESPRESSIO_PROPERTY(
-            "command",
-            Command
-        ),
-        ESPRESSIO_PROPERTY(
-            "value",
-            Value
-        )
+        ESPRESSIO_PROPERTY("command", Command),
+        ESPRESSIO_PROPERTY("value", Value)
     )
 };
 
-ESPRESSIO_EVENT_TRANSPORT_TYPE(
-    RemoteCommandEvent,
-    "flowduino.example.serial.remote-command.v1"
-)
+static_assert(Serializable::IsBoundedSerializable<RemoteCommandEvent>);
 
-
-class LoopbackTransport final :
-    public ESPressio::Event::
-        IEventTransport {
-
-private:
-    ESPressio::Event::
-        IEventTransportReceiver*
-            _receiver = nullptr;
-
+class LoopbackEventAuthorizer final : public Serial::IEventConsoleAuthorizer {
 public:
-    bool Send(
-        const ESPressio::Event::
-            EventTransportPacket& packet
-    ) override {
-        if (
-            _receiver == nullptr ||
-            packet.Data == nullptr ||
-            packet.Size == 0
-        ) {
-            return false;
-        }
-
-        _receiver->
-            ReceiveEventTransportPacket(
-                this,
-                packet.Data,
-                packet.Size
-            );
-
-        return true;
-    }
-
-    void SetReceiver(
-        ESPressio::Event::
-            IEventTransportReceiver*
-                receiver
-    ) override {
-        _receiver = receiver;
+    Serial::EventConsoleAuthorizationDecision Authorize(
+        const Primitive::PrimitiveTypeDescriptor& descriptor
+    ) const noexcept override {
+        return descriptor.Key.Family == E::EventFamilyId &&
+               descriptor.Key.TypeValue == RemoteCommandEvent::TypeId.Value()
+            ? Serial::EventConsoleAuthorizationDecision::Authorized
+            : Serial::EventConsoleAuthorizationDecision::Denied;
     }
 };
 
-LoopbackTransport loopback;
-ESPressio::Serial::Console console;
-ESPressio::Serial::EventConsole eventConsole;
-ESPressio::Serial::EventMonitor eventMonitor;
+Primitive::TypeDirectory<1> primitiveTypes;
+E::Runtime events;
+ESP32Platform::ArduinoByteStream serialIO(::Serial);
+Serial::Console console;
+Serial::EventConsole eventConsole;
+Serial::EventMonitor eventMonitor;
+LoopbackEventAuthorizer eventAuthorizer;
 
 void setup() {
     ::Serial.begin(115200);
 
-    auto& manager =
-        ESPressio::Event::
-            EventTransportManager::
-                GetInstance();
+    // The historical transport loopback is intentionally replaced by a local
+    // tooling loopback: Console parsing -> final Event family dispatch.
+    if (primitiveTypes.Register<RemoteCommandEvent>() !=
+        Primitive::TypeDirectoryRegistrationStatus::Success ||
+        primitiveTypes.Initialize() !=
+        Primitive::TypeDirectoryInitializationStatus::Success) {
+        ::Serial.println("Failed to prepare Primitive TypeDirectory");
+        return;
+    }
 
-    manager.RegisterTransport(
-        &loopback
-    );
+    if (events.Initialize(primitiveTypes.View()) != E::EventRuntimeStatus::Success ||
+        events.Start() != E::EventRuntimeStatus::Success) {
+        ::Serial.println("Failed to start Event runtime");
+        return;
+    }
 
-    manager.RegisterBidirectionalEvent<
-        RemoteCommandEvent
-    >(
-        &loopback
-    );
+    Serial::ConsoleConfig consoleConfig;
+    consoleConfig.Prompt = "espressio> ";
+    consoleConfig.MaximumLineLength = 192;
+    if (!console.Initialize(serialIO, consoleConfig)) {
+        ::Serial.println("Failed to initialize Serial console");
+        return;
+    }
 
-    ESPressio::Serial::ConsoleConfig
-        consoleConfig;
+    Serial::EventConsoleConfig eventConsoleConfig;
+    eventConsoleConfig.MaximumJsonLength = 128;
+    if (!eventConsole.Initialize(
+            console,
+            primitiveTypes.View(),
+            eventAuthorizer,
+            eventConsoleConfig)) {
+        ::Serial.println("Failed to initialize Event console");
+        return;
+    }
 
-    consoleConfig.Prompt =
-        "espressio> ";
+    auto* output = console.GetOutput();
+    if (output == nullptr ||
+        !eventMonitor.Initialize(primitiveTypes.View(), *output)) {
+        ::Serial.println("Failed to initialize Event monitor");
+        return;
+    }
 
-    console.Initialize(
-        ::Serial,
-        ::Serial,
-        consoleConfig
-    );
-
-    ESPressio::Serial::
-        EventConsoleConfig
-            eventConsoleConfig;
-
-    eventConsoleConfig.RequireConfirmation =
-        true;
-
-    eventConsole.Initialize(
-        console,
-        eventConsoleConfig,
-        manager
-    );
-
-    eventConsole.AllowEvent<
-        RemoteCommandEvent
-    >();
-
-    ESPressio::Serial::
-        EventMonitorConfig
-            monitorConfig;
-
-    monitorConfig.PayloadFormat =
-        ESPressio::Serial::
-            EventMonitorPayloadFormat::
-                Structured;
-
-    eventMonitor.Initialize(
-        ::Serial,
-        monitorConfig,
-        manager
-    );
-
-    manager.Initialize();
+    eventMonitor.List();
+    (void)eventMonitor.Describe(RemoteCommandEvent::CanonicalName);
 
     ::Serial.println();
+    ::Serial.println("Local tooling loopback example:");
     ::Serial.println(
-        "Compose and dispatch a runtime Event over the loopback transport:"
-    );
+        "  event json flowduino.example.serial.remote-command.v1 {\"command\":1,\"value\":42}");
 
-    ::Serial.println(
-        "event queue flowduino.example.serial.remote-command.v1 {\"command\":\"move\",\"value\":42}"
-    );
+    // Exercise exactly the same parser/authorization/dynamic-dispatch path that
+    // an operator enters on the serial console.
+    (void)console.ExecuteLine(
+        "event json flowduino.example.serial.remote-command.v1 {\"command\":1,\"value\":42}");
 }
 
 void loop() {
