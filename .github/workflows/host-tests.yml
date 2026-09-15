@@ -53,6 +53,11 @@ jobs:
             echo 'Aggregate Serial tests still encode predecessor family architecture.' >&2
             exit 1
           fi
+          if grep -R -nE 'ClockSynchronizationState|SystemSynchronizationState|\.State[[:space:]]*[,;)]' tests/test_serial_log_sink.cpp; then
+            echo 'Serial Logging test still encodes predecessor Timing diagnostics.' >&2
+            exit 1
+          fi
+          grep -q 'TimeReliability::Synchronized' tests/test_serial_log_sink.cpp
           test ! -e src/event/ESPressio_EventMonitorFormatter.hpp
           test ! -e src/event/ESPressio_EventMonitorPayloadSafety.hpp
           test ! -e tests/stubs/ESPressio_CommandEvents.hpp
